@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from .app import Gwrc
+from .app import Pywrc
 from .config import load
 
 
 def main() -> None:
-    Gwrc(load()).run()
+    Pywrc(load()).run()
 
 
 if __name__ == "__main__":

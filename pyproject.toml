@@ -1,5 +1,5 @@
 [project]
-name = "gwrc"
+name = "pywrc"
 version = "0.1.0"
 description = "A WeeChat relay client for the terminal, in the spirit of vanilla WeeChat"
 readme = "README.md"
@@ -7,15 +7,22 @@ license = { file = "LICENSE" }
 authors = [{ name = "Alexandre Martin" }]
 requires-python = ">=3.11"
 dependencies = ["textual>=0.86"]
+keywords = ["weechat", "relay", "irc", "tui", "textual"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Topic :: Communications :: Chat :: Internet Relay Chat",
+]
 
 [project.scripts]
-gwrc = "gwrc.__main__:main"
+pywrc = "pywrc.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/MrWazaby/gwrc"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/gwrc"]
+packages = ["src/pywrc"]
 
 [build-system]
 requires = ["hatchling"]
@@ -30,14 +37,6 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
-
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "v$version"
-version_scheme = "pep440"
-version_provider = "pep621"
-update_changelog_on_bump = true
-major_version_zero = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from gwrc import colors
+from pywrc import colors
 
 
 def styles(text) -> list[tuple[str, str]]:

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import time
 
-from gwrc import render
-from gwrc.state import HIGHLIGHT, MESSAGE, Buffer, Line, State
+from pywrc import render
+from pywrc.state import HIGHLIGHT, MESSAGE, Buffer, Line, State
 
 DATE = 1321993456
 

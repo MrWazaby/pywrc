@@ -1,4 +1,4 @@
-"""The gwrc user interface, laid out like the default WeeChat screen."""
+"""The pywrc user interface, laid out like the default WeeChat screen."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from .config import Config
 from .protocol import Message
 from .state import LINES, NICKLIST, TITLE, Buffer, Line, State
 
-LOCAL_BUFFER = "gwrc"
+LOCAL_BUFFER = "pywrc"
 """Buffer holding the messages of the client itself, before/without a connection."""
 
 BUFFER_KEYS = "number,full_name,short_name,title,nicklist,local_variables"
@@ -27,7 +27,7 @@ LINE_KEYS = "date,displayed,highlight,prefix,message"
 
 
 class Chat(RichLog):
-    """The chat area: gwrc wraps the lines itself, so it is redrawn when its width changes."""
+    """The chat area: pywrc wraps the lines itself, so it is redrawn when its width changes."""
 
     width = 0
 
@@ -48,7 +48,7 @@ class Completion:
     """Input value produced by the completion, to detect that the user typed."""
 
 
-class Gwrc(App[None]):
+class Pywrc(App[None]):
     """A WeeChat relay client."""
 
     CSS = """

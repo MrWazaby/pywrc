@@ -10,9 +10,9 @@ from getpass import getpass
 from pathlib import Path
 
 CONFIG_PATH = (
-    Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "gwrc" / "gwrc.toml"
+    Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "pywrc" / "pywrc.toml"
 )
-PASSWORD_VARIABLE = "GWRC_PASSWORD"
+PASSWORD_VARIABLE = "PYWRC_PASSWORD"
 
 
 @dataclass
@@ -47,7 +47,7 @@ def from_file(path: Path) -> dict[str, object]:
 
 
 def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="gwrc", description="A WeeChat relay client.")
+    parser = argparse.ArgumentParser(prog="pywrc", description="A WeeChat relay client.")
     parser.add_argument("-H", "--hostname", help="relay hostname (default: localhost)")
     parser.add_argument("-p", "--port", type=int, help="relay port (default: 9000)")
     parser.add_argument("-t", "--totp", help="time-based one-time password")

@@ -6,7 +6,7 @@ import zlib
 
 import pytest
 
-from gwrc.protocol import Hdata, ProtocolError, decode_message, encode_command
+from pywrc.protocol import Hdata, ProtocolError, decode_message, encode_command
 
 
 def string(value: str) -> bytes:

@@ -1,7 +1,7 @@
-# gwrc
+# pywrc
 
-A [WeeChat](https://weechat.org/) relay client for the terminal, written in Python with
-[Textual](https://textual.textualize.io/).
+Python WeeChat Relay Client: a client for the relay of [WeeChat](https://weechat.org/),
+in the terminal, written with [Textual](https://textual.textualize.io/).
 
 It connects to the relay of a running WeeChat (the `weechat` protocol) and shows your
 buffers the way WeeChat does: buflist on the left, title on top, right aligned prefixes,
@@ -9,24 +9,28 @@ nicklist on the right, status bar with the hotlist, and the input line at the bo
 
 ```
 1.weechat         │#weechat / WeeChat, the extensible chat client
-2.libera          │12:24:31       │ Mode #weechat [+nt] by zirconium.libera.chat
+2.libera          │12:24:31        │ Mode #weechat [+nt] by zirconium.libera.chat
 3.#weechat        │12:26:02   -->  │ alice (~alice@libera/user/alice) has joined #weechat
                   │12:26:44 @alice │ hello, this line is long enough to be wrapped and it stays
                   │                │ aligned under the message, like in WeeChat
                   │12:27:05    bob │ hi!
-                  │[12:27] [3] [irc/libera] 3:#weechat{42} [H: 2, 4:#gwrc(3)]
+                  │[12:27] [3] [irc/libera] 3:#weechat{42} [H: 2, 4:#pywrc(3)]
                   │[me]
 ```
 
 ## Install
 
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.11+ and [pipx](https://pipx.pypa.io/).
 
 ```console
-git clone https://github.com/MrWazaby/gwrc && cd gwrc
-uv sync
-uv run gwrc --hostname my.server --port 9000
+pipx install git+https://github.com/MrWazaby/gwrc.git
+pywrc --hostname my.server --port 9000
 ```
+
+Anything installing a Python application works the same way, for instance
+`uv tool install git+https://github.com/MrWazaby/gwrc.git` or, from a clone,
+`pipx install .`. Upgrade with `pipx upgrade pywrc` and remove it with
+`pipx uninstall pywrc`.
 
 On the WeeChat side, a relay must be listening:
 
@@ -37,8 +41,8 @@ On the WeeChat side, a relay must be listening:
 
 ## Configuration
 
-Options are read from `~/.config/gwrc/gwrc.toml`, then from the environment, then from the
-command line. The password can also be given in `$GWRC_PASSWORD`; without one, gwrc asks for
+Options are read from `~/.config/pywrc/pywrc.toml`, then from the environment, then from the
+command line. The password can also be given in `$PYWRC_PASSWORD`; without one, pywrc asks for
 it at startup.
 
 ```toml
@@ -53,7 +57,7 @@ tls_cafile = ""     # or the certificate to check the relay against
 lines = 200         # lines fetched per buffer at startup
 ```
 
-Run `uv run gwrc --help` for the command line options.
+Run `pywrc --help` for the command line options.
 
 ## Keys
 
@@ -74,21 +78,33 @@ The keys are the WeeChat ones:
 | `ctrl+a`, `ctrl+e`, `ctrl+w`, `ctrl+u`, `ctrl+k` | edit the input line          |
 
 Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands work
-(`/join`, `/query`, `/msg`, `/close`, ...). Two commands are handled by gwrc itself:
+(`/join`, `/query`, `/msg`, `/close`, ...). Two commands are handled by pywrc itself:
 
 - `/buffer <number|name>` switches the displayed buffer (it does not move the buffer of
   the remote WeeChat),
-- `/quit` and `/disconnect` close gwrc, leaving WeeChat running.
+- `/quit` and `/disconnect` close pywrc, leaving WeeChat running.
 
 ## Development
 
+The project is managed with [uv](https://docs.astral.sh/uv/).
+
 ```console
-uv run pytest            # tests
-uv run ruff check .      # lint
-uv run ruff format .     # format
-uv run pre-commit install  # ruff + commitizen hooks (commit messages)
-uv run cz commit         # write a conventional commit
-uv run cz bump           # bump the version and update the changelog
+git clone https://github.com/MrWazaby/gwrc && cd gwrc
+uv sync                    # install the dependencies
+uv run pywrc               # run from the sources
+uv run pytest              # tests
+uv run ruff check .        # lint
+uv run ruff format .       # format
+uv run pre-commit install  # install the ruff and commitizen hooks
+```
+
+Commits follow the [conventional commits](https://www.conventionalcommits.org/): commitizen
+is configured in `.cz.toml` and its `commit-msg` hook rejects the messages that do not.
+
+```console
+uv run cz commit         # write a commit message with the prompt
+uv run cz changelog      # regenerate CHANGELOG.md from the commits
+uv run cz bump           # tag a release: version, changelog and tag
 ```
 
 There is no fake relay in the tests: the unit tests cover the protocol codec, the color
@@ -99,7 +115,7 @@ weechat-headless --dir /tmp/wc --stdout \
   -r "/set relay.network.password test" \
   -r "/set relay.network.ipv6 off" \
   -r "/relay add weechat 9001" &
-uv run gwrc --hostname 127.0.0.1 --port 9001 --no-tls
+uv run pywrc --hostname 127.0.0.1 --port 9001 --no-tls
 ```
 
 ## Layout of the code
