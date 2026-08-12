@@ -358,9 +358,9 @@ class Pywrc(App[None]):
             return
         item = items[0]
         start, end = item.get("pos_start", 0), item.get("pos_end", -1) + 1
-        if start == 0 and item.get("context") == "auto":
-            words = [f"{word}: " for word in words]  # weechat.completion.nick_completer
-        elif item.get("add_space", 1):
+        # a nick completed at the start of the input already carries
+        # weechat.completion.nick_completer, and "add_space" is 0 for it
+        if item.get("add_space", 1):
             words = [f"{word} " for word in words]
         self.completion = Completion(words, start, end)
         self.insert(words[0])
