@@ -124,6 +124,7 @@ class Pywrc(App[None]):
         """Connect to the relay, then dispatch its messages until it closes."""
         try:
             await self.client.connect()
+            self.echo(f"Connected to {self.client.url}")
             self.request_buffers()
             async for message in self.client.messages():
                 self.messages_received += 1
