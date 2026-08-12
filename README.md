@@ -23,12 +23,12 @@ nicklist on the right, status bar with the hotlist, and the input line at the bo
 Requires Python 3.11+ and [pipx](https://pipx.pypa.io/).
 
 ```console
-pipx install git+https://github.com/MrWazaby/gwrc.git
+pipx install git+https://github.com/MrWazaby/pywrc.git
 pywrc --hostname my.server --port 9000
 ```
 
 Anything installing a Python application works the same way, for instance
-`uv tool install git+https://github.com/MrWazaby/gwrc.git` or, from a clone,
+`uv tool install git+https://github.com/MrWazaby/pywrc.git` or, from a clone,
 `pipx install .`. Upgrade with `pipx upgrade pywrc` and remove it with
 `pipx uninstall pywrc`.
 
@@ -113,7 +113,7 @@ Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands
 The project is managed with [uv](https://docs.astral.sh/uv/).
 
 ```console
-git clone https://github.com/MrWazaby/gwrc && cd gwrc
+git clone https://github.com/MrWazaby/pywrc && cd pywrc
 uv sync                    # install the dependencies
 uv run pywrc               # run from the sources
 uv run pytest              # tests
