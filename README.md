@@ -18,6 +18,11 @@ nicklist on the right, status bar with the hotlist, and the input line at the bo
                   │[me]
 ```
 
+> [!NOTE]
+> This is a personal project, vibecoded with [Claude](https://claude.com/claude-code): I wrote
+> it for my own use, and the code is written by an LLM from my prompts. Use it if it is useful
+> to you, but expect no support and no stability.
+
 ## Install
 
 Requires Python 3.11+ and [pipx](https://pipx.pypa.io/).
