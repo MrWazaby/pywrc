@@ -19,7 +19,7 @@ classifiers = [
 pywrc = "pywrc.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/MrWazaby/gwrc"
+Homepage = "https://github.com/MrWazaby/pywrc"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pywrc"]

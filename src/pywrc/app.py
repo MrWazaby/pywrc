@@ -17,7 +17,7 @@ from . import colors, render
 from .client import RelayClient, RelayError
 from .config import Config
 from .protocol import Message
-from .state import LINES, NICKLIST, TITLE, Buffer, Line, State
+from .state import LINES, NICKLIST, NUMBERS, TITLE, Buffer, Line, State
 
 LOCAL_BUFFER = "pywrc"
 """Buffer holding the messages of the client itself, before/without a connection."""
@@ -152,6 +152,10 @@ class Pywrc(App[None]):
         self.send("hdata window:gui_current_window/buffer full_name", "currentbuffer")
         self.send("sync")
 
+    def request_numbers(self) -> None:
+        """Ask for the numbers of every buffer: the relay only sends the one that changed."""
+        self.send("hdata buffer:gui_buffers(*) number,full_name", "renumber")
+
     def handle(self, message: Message) -> None:
         """Update the state with a message from the relay, and redraw what changed."""
         if message.id == "completion":
@@ -166,6 +170,8 @@ class Pywrc(App[None]):
             return
         added = self.added_lines(message)
         changed = self.state.handle(message)
+        if NUMBERS in changed:
+            self.request_numbers()
         if message.id == "listbuffers" and self.state.current is self.local:
             self.switch_to(self.first_buffer())
         elif added:
@@ -352,9 +358,9 @@ class Pywrc(App[None]):
             return
         item = items[0]
         start, end = item.get("pos_start", 0), item.get("pos_end", -1) + 1
-        if start == 0 and item.get("context") == "auto":
-            words = [f"{word}: " for word in words]  # weechat.completion.nick_completer
-        elif item.get("add_space", 1):
+        # a nick completed at the start of the input already carries
+        # weechat.completion.nick_completer, and "add_space" is 0 for it
+        if item.get("add_space", 1):
             words = [f"{word} " for word in words]
         self.completion = Completion(words, start, end)
         self.insert(words[0])
