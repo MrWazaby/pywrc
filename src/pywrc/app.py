@@ -17,7 +17,7 @@ from . import colors, render
 from .client import RelayClient, RelayError
 from .config import Config
 from .protocol import Message
-from .state import LINES, NICKLIST, TITLE, Buffer, Line, State
+from .state import LINES, NICKLIST, NUMBERS, TITLE, Buffer, Line, State
 
 LOCAL_BUFFER = "pywrc"
 """Buffer holding the messages of the client itself, before/without a connection."""
@@ -152,6 +152,10 @@ class Pywrc(App[None]):
         self.send("hdata window:gui_current_window/buffer full_name", "currentbuffer")
         self.send("sync")
 
+    def request_numbers(self) -> None:
+        """Ask for the numbers of every buffer: the relay only sends the one that changed."""
+        self.send("hdata buffer:gui_buffers(*) number,full_name", "renumber")
+
     def handle(self, message: Message) -> None:
         """Update the state with a message from the relay, and redraw what changed."""
         if message.id == "completion":
@@ -166,6 +170,8 @@ class Pywrc(App[None]):
             return
         added = self.added_lines(message)
         changed = self.state.handle(message)
+        if NUMBERS in changed:
+            self.request_numbers()
         if message.id == "listbuffers" and self.state.current is self.local:
             self.switch_to(self.first_buffer())
         elif added:

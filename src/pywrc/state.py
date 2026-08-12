@@ -14,6 +14,14 @@ LOW, MESSAGE, PRIVATE, HIGHLIGHT = range(4)
 BUFFERS, LINES, NICKLIST, TITLE = "buffers", "lines", "nicklist", "title"
 """What changed in the state, as returned by :meth:`State.handle`."""
 
+NUMBERS = "numbers"
+"""Also returned by :meth:`State.handle`: the numbers of the buffers must be asked again."""
+
+RENUMBERING = frozenset(
+    {"_buffer_opened", "_buffer_moved", "_buffer_merged", "_buffer_unmerged", "_buffer_closing"}
+)
+"""Signals sent for a single buffer, while WeeChat renumbers the others without saying so."""
+
 
 @dataclass
 class Line:
@@ -159,6 +167,8 @@ class State:
             return set()
         items = hdata.items
         changed: set[str] = set()
+        if message.id in RENUMBERING:
+            changed.add(NUMBERS)
         match message.id:
             case "listbuffers" | "_buffer_opened":
                 for item in items:
@@ -178,6 +188,11 @@ class State:
                     self.add_line(buffer, item)
                     self.notify(buffer, item)
                 changed.update([LINES, BUFFERS])
+            case "renumber":  # the numbers asked again after a RENUMBERING signal
+                for item in items:
+                    if buffer := self.buffers.get(item["__path"][-1]):
+                        self.update_buffer(buffer, item)
+                changed.add(BUFFERS)
             case "_buffer_closing":
                 for item in items:
                     self.buffers.pop(item["__path"][-1], None)
