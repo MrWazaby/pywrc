@@ -137,7 +137,7 @@ uv run cz bump           # tag a release: version, changelog and tag
 ```
 
 There is no fake relay in the tests: the unit tests cover the protocol codec, the color
-codes and the rendering, and everything else is tried against a real WeeChat:
+codes, the state and the rendering, and everything else is tried against a real WeeChat:
 
 ```console
 weechat-headless --dir /tmp/wc --stdout \
