@@ -26,6 +26,12 @@ class Config:
     tls: bool = True
     tls_verify: bool = True
     tls_cafile: str | None = None
+    websocket: bool | None = None
+    """Talk WebSocket, like a browser client; None tries the relay socket first."""
+    websocket_path: str = "weechat"
+    """Path of the WebSocket URL, the one Glowing Bear uses by default."""
+    websocket_origin: str = ""
+    """Origin sent with the WebSocket handshake, for relay.network.websocket_allowed_origins."""
     lines: int = 200
     """Number of lines fetched for each buffer at startup."""
 
@@ -62,6 +68,15 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="do not verify the relay certificate (self-signed certificates)",
     )
+    parser.add_argument(
+        "-w",
+        "--websocket",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="talk WebSocket, like a browser client (default: try the relay socket first)",
+    )
+    parser.add_argument("--websocket-path", help='path of the WebSocket URL (default: "weechat")')
+    parser.add_argument("--websocket-origin", help="origin sent with the WebSocket handshake")
     parser.add_argument("-c", "--config", type=Path, default=CONFIG_PATH, help="configuration file")
     return parser.parse_args(argv)
 

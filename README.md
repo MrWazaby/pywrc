@@ -55,9 +55,33 @@ tls = true
 tls_verify = true   # false for the self-signed certificate of a relay
 tls_cafile = ""     # or the certificate to check the relay against
 lines = 200         # lines fetched per buffer at startup
+
+websocket = true            # for a relay published by a web server (detected on its own)
+websocket_path = "weechat"  # path of the URL: "wss://my.server:9000/weechat"
+websocket_origin = ""       # if relay.network.websocket_allowed_origins is set in WeeChat
 ```
 
 Run `pywrc --help` for the command line options.
+
+### Relays behind a web server
+
+A relay is often published by a web server, at an URL such as `wss://my.server/weechat`: this
+is what browser clients like [Glowing Bear](https://www.glowing-bear.org/) connect to. Such an
+endpoint speaks HTTP and WebSocket, never the raw relay socket, so pywrc opens a WebSocket too,
+exactly like a browser does.
+
+It is detected on its own: when the relay answers with HTTP instead of the WeeChat protocol,
+pywrc reconnects through a WebSocket, on `websocket_path` (`weechat`, the path Glowing Bear
+uses by default). The buffer of pywrc says which way the connection went:
+
+```
+[me] Connected to wss://my.server:9000/weechat
+```
+
+Set `websocket = true` (or `--websocket`) to go straight to it, `websocket = false` to never
+do it, and `websocket_path` for another URL. If WeeChat restricts the origins of the WebSocket
+clients (`/set relay.network.websocket_allowed_origins`), `websocket_origin` must be one of
+them, since pywrc sends no origin by default.
 
 ## Keys
 
