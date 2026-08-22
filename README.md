@@ -106,6 +106,8 @@ The keys are the WeeChat ones:
 | `ctrl+l`                             | redraw the screen                       |
 | `ctrl+a`, `ctrl+e`, `ctrl+w`, `ctrl+u`, `ctrl+k` | edit the input line          |
 
+The input line wraps over as many lines as it needs, like the input bar of WeeChat.
+
 Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands work
 (`/join`, `/query`, `/msg`, `/close`, ...). Two commands are handled by pywrc itself:
 
@@ -137,7 +139,8 @@ uv run cz bump           # tag a release: version, changelog and tag
 ```
 
 There is no fake relay in the tests: the unit tests cover the protocol codec, the color
-codes, the state and the rendering, and everything else is tried against a real WeeChat:
+codes, the state, the rendering and the input line, and everything else is tried against
+a real WeeChat:
 
 ```console
 weechat-headless --dir /tmp/wc --stdout \

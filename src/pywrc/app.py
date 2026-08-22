@@ -6,12 +6,16 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from rich.cells import cell_len
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.events import Resize
+from textual.events import MouseDown, MouseMove, Resize
+from textual.geometry import Region, Size
+from textual.strip import Strip
 from textual.widgets import Input, RichLog, Static
+from textual.widgets.input import Selection
 
 from . import colors, render
 from .client import RelayClient, RelayError
@@ -37,6 +41,83 @@ class Chat(RichLog):
             self.app.call_after_refresh(self.app.draw_chat)  # type: ignore[attr-defined]
 
 
+class InputBar(Input):
+    """The input line, wrapped over as many lines as it needs, like the input bar of WeeChat.
+
+    WeeChat lets its input bar grow until the window is full, then scrolls it to keep the
+    cursor in sight; a value longer than the bar is never scrolled sideways.
+    """
+
+    KEPT_LINES = 3
+    """Lines left to the rest of the screen when the input grows: title, chat and status bar."""
+
+    row = 0
+    """Line of the input the mouse points at: Input itself only looks at the column."""
+
+    @property
+    def content_width(self) -> int:
+        """Width the value is wrapped over: the bar itself, since it never scrolls sideways."""
+        return max(self.scrollable_content_region.width, 1)
+
+    def rows(self, width: int = 0) -> int:
+        """Screen lines taken by the value, with the room the cursor needs after it."""
+        width = width or self.content_width
+        return max(1, -(-(cell_len(self.value) + 1) // max(width, 1)))
+
+    def get_content_height(self, container: Size, viewport: Size, width: int) -> int:
+        return min(self.rows(width), max(viewport.height - self.KEPT_LINES, 1))
+
+    def measure(self) -> None:
+        """Tell the widget how many lines the value takes, so that it can scroll to them."""
+        self.virtual_size = Size(self.content_width, self.rows())
+
+    def show_cursor(self) -> None:
+        """Scroll the bar to the line the cursor is on, the way WeeChat does when it is full."""
+        row = cell_len(self.value[: self.cursor_position]) // self.content_width
+        self.scroll_to_region(Region(0, row, 1, 1), force=True, animate=False)
+
+    def on_resize(self) -> None:
+        self.measure()
+
+    def _watch_value(self, value: str) -> None:
+        super()._watch_value(value)
+        self.measure()
+        self.show_cursor()
+
+    def _watch_selection(self, selection: Selection) -> None:
+        super()._watch_selection(selection)
+        self.show_cursor()
+
+    def on_mouse_down(self, event: MouseDown) -> None:
+        self.row = event.get_content_offset_capture(self).y
+
+    def on_mouse_move(self, event: MouseMove) -> None:
+        self.row = event.get_content_offset_capture(self).y
+
+    def _cell_offset_to_index(self, offset: int) -> int:
+        """Where the mouse points at, counting the lines the value is wrapped over."""
+        row = self.row + int(self.scroll_offset.y)
+        return super()._cell_offset_to_index(offset + row * self.content_width)
+
+    def render_line(self, y: int) -> Strip:
+        """Render one of the lines the value is wrapped over."""
+        width = self.content_width
+        text = Text(self.value, no_wrap=True, overflow="ignore", end="")
+        text.pad_right(1)  # where the cursor sits once the value is fully typed
+        if self.has_focus:
+            start, end = sorted(self.selection)
+            if start != end:
+                text.stylize_before(self.get_component_rich_style("input--selection"), start, end)
+            if self._cursor_visible:
+                cursor = self.cursor_position
+                text.stylize(self.get_component_rich_style("input--cursor"), cursor, cursor + 1)
+        options = self.app.console_options.update_width(text.cell_len)
+        strip = Strip(self.app.console.render(text, options))
+        row = y + int(self.scroll_offset.y)
+        strip = strip.crop(row * width, (row + 1) * width)
+        return strip.extend_cell_length(width).apply_style(self.rich_style)
+
+
 @dataclass
 class Completion:
     """The words proposed by WeeChat for the word being completed."""
@@ -55,15 +136,17 @@ class Pywrc(App[None]):
     Screen { background: ansi_default; }
     #title, #status { height: 1; background: #1c1c1c; }
     #body { height: 1fr; }
-    #buflist, #nicklist, #chat { scrollbar-size: 0 0; }
+    #buflist, #nicklist, #chat, #input { scrollbar-size: 0 0; }
     #buflist, #nicklist { width: auto; max-width: 25%; }
     #buflist-items, #nicklist-items { width: auto; }
     #buflist { border-right: solid #303030; }
     #nicklist { border-left: solid #303030; }
     #chat { width: 1fr; }
-    #bar { height: 1; }
+    #bar { height: auto; }
     #prompt { width: auto; margin-right: 1; }
-    #input, #input:focus { border: none; padding: 0; height: 1; background: ansi_default; }
+    #input, #input:focus {
+        border: none; padding: 0; width: 1fr; height: auto; background: ansi_default;
+    }
     """
 
     ENABLE_COMMAND_PALETTE = False
@@ -109,10 +192,10 @@ class Pywrc(App[None]):
                 yield Static(id="status")
                 with Horizontal(id="bar"):
                     yield Static(id="prompt")
-                    yield Input(id="input")
+                    yield InputBar(id="input")
 
     def on_mount(self) -> None:
-        self.query_one("#input", Input).focus()
+        self.query_one("#input", InputBar).focus()
         self.set_interval(15, self.draw_bars)
         self.draw()
         self.echo(f"Connecting to {self.config.address}...")
@@ -339,7 +422,7 @@ class Pywrc(App[None]):
 
     def action_complete(self) -> None:
         """Complete the word before the cursor, using the completion of WeeChat."""
-        input_ = self.query_one("#input", Input)
+        input_ = self.query_one("#input", InputBar)
         buffer = self.state.current
         if buffer is None or buffer is self.local:
             return
@@ -370,14 +453,14 @@ class Pywrc(App[None]):
         completion = self.completion
         if completion is None:
             return
-        input_ = self.query_one("#input", Input)
+        input_ = self.query_one("#input", InputBar)
         value = input_.value[: completion.start] + word + input_.value[completion.end :]
         completion.end = completion.start + len(word)
         completion.text = value
         self.set_input(value)
 
     def set_input(self, value: str) -> None:
-        input_ = self.query_one("#input", Input)
+        input_ = self.query_one("#input", InputBar)
         input_.value = value
         input_.cursor_position = len(value)
 
