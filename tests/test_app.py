@@ -1,4 +1,4 @@
-"""The application itself: the input line, wrapped the way WeeChat wraps its own."""
+"""The application itself: the input line and what a lost connection leaves behind."""
 
 from __future__ import annotations
 
@@ -54,3 +54,21 @@ async def test_clicking_a_wrapped_line_moves_the_cursor_there():
         await pilot.pause()
         await pilot.click("#input", offset=(3, 1))
         assert input_.cursor_position == input_.content_width + 3
+
+
+async def test_a_lost_connection_leaves_the_buffer_to_come_back_to():
+    app = pywrc()
+    async with app.run_test():
+        buffer = app.state.add_buffer({"__path": ["0x1"], "full_name": "irc.libera.#weechat"})
+        app.state.current = buffer
+        app.forget()  # the relay went away: its buffers may not come back the same
+        assert app.previous == "irc.libera.#weechat"
+        assert list(app.state.buffers) == [app.local.pointer]
+        assert app.state.current is app.local
+
+
+async def test_the_first_connection_has_no_buffer_to_come_back_to():
+    app = pywrc()
+    async with app.run_test():
+        app.forget()
+        assert app.previous == ""  # WeeChat is asked which buffer it displays instead

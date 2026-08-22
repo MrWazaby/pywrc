@@ -89,6 +89,8 @@ class RelayClient:
         self.transport: Transport | None = None
         self.websocket = False  # whether the connection goes through a WebSocket
         self.version = ""
+        self.handshake: dict[str, str] = {}
+        """What the relay answered to the handshake, empty for the WeeChat that ignores it."""
 
     @property
     def url(self) -> str:
@@ -106,7 +108,7 @@ class RelayClient:
         except HttpAnswer:
             if self.config.websocket is not None:
                 raise  # the transport was chosen by the user: do not guess another one
-            self._abandon()  # a web endpoint: connect the way a browser client does
+            self.abort()  # a web endpoint: connect the way a browser client does
             await self._open(use_websocket=True)
             await self._authenticate()
 
@@ -150,8 +152,8 @@ class RelayClient:
             ),
             message_id="handshake",
         )
-        handshake = await self._handshake_answer()
-        self.send(f"init {self._init_options(handshake)}", message_id="init")
+        self.handshake = await self._handshake_answer()
+        self.send(f"init {self._init_options(self.handshake)}", message_id="init")
 
     async def _handshake_answer(self) -> dict[str, str]:
         try:
@@ -237,8 +239,8 @@ class RelayClient:
             pass
         transport.close()
 
-    def _abandon(self) -> None:
-        """Drop the connection without saying anything: there is no relay on the other side."""
+    def abort(self) -> None:
+        """Drop the connection without saying anything, and without waiting for the relay."""
         if self.transport is not None:
             transport, self.transport = self.transport, None
             transport.close()

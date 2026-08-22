@@ -71,6 +71,11 @@ def test_status_bar_shows_the_current_buffer_and_the_hotlist():
     assert "[H: 3:#weechat(2)]" in text
 
 
+def test_status_bar_says_when_the_relay_is_out_of_reach():
+    assert render.status(buffers(), "not connected").plain.endswith("[not connected]")
+    assert "connected" not in render.status(buffers()).plain
+
+
 def test_hotlist_shows_only_numbers_for_messages():
     state = buffers()
     state.buffers["0x2"].hotlist[MESSAGE] = 1

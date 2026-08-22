@@ -150,8 +150,12 @@ def hotlist(state: State) -> Text:
     return _item(Text(HOTLIST_PREFIX) + Text(", ", delimiter).join(items), True)
 
 
-def status(state: State) -> Text:
-    """The status bar, with the same items as the default WeeChat one."""
+def status(state: State, connection: str = "") -> Text:
+    """The status bar, with the same items as the default WeeChat one.
+
+    A connection that is not up is said there too: WeeChat has no such item, but a
+    client that lost its relay has to say so somewhere.
+    """
     buffer = state.current
     items = [
         _item(time.strftime(ITEM_TIME_FORMAT), True),
@@ -171,6 +175,8 @@ def status(state: State) -> Text:
         items.append(current)
     if hot := hotlist(state):
         items.append(hot)
+    if connection:
+        items.append(_item(Text(connection, colors.style("chat_status_disabled")), True))
     return Text(" ").join(items)
 
 

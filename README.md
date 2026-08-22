@@ -109,11 +109,25 @@ The keys are the WeeChat ones:
 The input line wraps over as many lines as it needs, like the input bar of WeeChat.
 
 Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands work
-(`/join`, `/query`, `/msg`, `/close`, ...). Two commands are handled by pywrc itself:
+(`/join`, `/query`, `/msg`, `/close`, ...). Three commands are handled by pywrc itself:
 
 - `/buffer <number|name>` switches the displayed buffer (it does not move the buffer of
   the remote WeeChat),
+- `/reconnect` drops the connection to the relay and takes it up again,
 - `/quit` and `/disconnect` close pywrc, leaving WeeChat running.
+
+## Connection
+
+pywrc pings the relay every 30 seconds and connects again on its own whenever the relay
+goes away, waiting a little longer after each attempt (1, 2, 5, 10, 30, then 60 seconds).
+The status bar says where things stand, and the buffers stay readable in the meantime:
+
+```
+[12:27] [3] [irc/libera] 3:#weechat{42} [not connected]
+```
+
+The buffers are asked again once the relay answers, since it may be another WeeChat by
+then, and the buffer that was displayed comes back.
 
 ## Development
 

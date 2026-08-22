@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import time
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
@@ -28,6 +30,19 @@ LOCAL_BUFFER = "pywrc"
 
 BUFFER_KEYS = "number,full_name,short_name,title,nicklist,local_variables"
 LINE_KEYS = "date,displayed,highlight,prefix,message"
+
+RETRY_DELAYS = (1, 2, 5, 10, 30, 60)
+"""Seconds waited before connecting again, growing with the attempts that failed."""
+
+PING_INTERVAL = 30.0
+"""Seconds between two pings: a quiet relay says nothing, a dead one says nothing either."""
+
+PING_TIMEOUT = 3 * PING_INTERVAL
+"""A relay that has not answered for that long is gone, whatever its socket says."""
+
+CONNECTING = "connecting..."
+DISCONNECTED = "not connected"
+"""What the status bar says while the relay is out of reach."""
 
 
 class Chat(RichLog):
@@ -179,7 +194,14 @@ class Pywrc(App[None]):
         self.state.current = self.local
         self.history_index = 0
         self.completion: Completion | None = None
-        self.messages_received = 0
+        self.connection = CONNECTING
+        """What the status bar says about the connection, empty while the relay answers."""
+        self.previous = ""
+        """Buffer displayed before the connection dropped, to come back to it."""
+        self.answered = 0.0
+        """When the relay was last heard from, to notice that it stopped answering."""
+        self.wakeup = asyncio.Event()
+        """Set by /reconnect, to try again without waiting for the next attempt."""
 
     def compose(self) -> ComposeResult:
         with Horizontal():
@@ -197,25 +219,89 @@ class Pywrc(App[None]):
     def on_mount(self) -> None:
         self.query_one("#input", InputBar).focus()
         self.set_interval(15, self.draw_bars)
+        self.set_interval(PING_INTERVAL, self.check_connection)
         self.draw()
-        self.echo(f"Connecting to {self.config.address}...")
         self.run_worker(self.relay(), name="relay", exclusive=True)
 
     # -- relay ---------------------------------------------------------------
 
     async def relay(self) -> None:
-        """Connect to the relay, then dispatch its messages until it closes."""
+        """Keep the session connected: a relay that goes away is waited for and tried again."""
+        attempt = 0
+        while True:
+            if attempt:
+                delay = RETRY_DELAYS[min(attempt - 1, len(RETRY_DELAYS) - 1)]
+                self.echo(f"connecting again in {delay}s...")
+                await self.wait(delay)
+            # a connection that worked starts the delays over, it does not skip them:
+            # a relay that keeps dropping is not worth connecting to as fast as possible
+            attempt = 1 if await self.session() else attempt + 1
+
+    async def session(self) -> bool:
+        """One connection, from the handshake to the end of the messages of the relay."""
+        received = 0
+        self.set_connection(CONNECTING)
+        self.echo(f"Connecting to {self.config.address}...")
         try:
             await self.client.connect()
+        except RelayError as error:
+            self.set_connection(DISCONNECTED)
+            self.echo(str(error), error=True)
+            return False
+        try:
+            self.answered = time.monotonic()  # the relay is there: it answered the handshake
+            self.set_connection("")
             self.echo(f"Connected to {self.client.url}")
+            self.forget()
             self.request_buffers()
             async for message in self.client.messages():
-                self.messages_received += 1
+                received += 1
+                self.answered = time.monotonic()
                 self.handle(message)
         except RelayError as error:
             self.echo(str(error), error=True)
-            if not self.messages_received:
-                self.echo("the relay refused the connection: wrong password?", error=True)
+        finally:
+            self.set_connection(DISCONNECTED)
+        if not received:
+            self.echo("the relay refused the connection: wrong password?", error=True)
+        return bool(received)
+
+    async def wait(self, delay: float) -> None:
+        """Wait between two attempts, unless /reconnect asks for one right away."""
+        with contextlib.suppress(TimeoutError):
+            await asyncio.wait_for(self.wakeup.wait(), delay)
+        self.wakeup.clear()
+
+    def action_reconnect(self) -> None:
+        """Drop the connection and take it up again, now."""
+        self.wakeup.set()
+        self.client.abort()
+
+    def check_connection(self) -> None:
+        """Ping the relay, and drop a connection it has stopped answering."""
+        if self.connection or not self.client.handshake:
+            return  # the relays that ignore the handshake have no ping command either
+        if time.monotonic() - self.answered > PING_TIMEOUT:
+            self.echo(f"no answer from {self.config.address}", error=True)
+            self.client.abort()  # the messages stop, and the worker connects again
+            return
+        self.send("ping")
+
+    def set_connection(self, connection: str) -> None:
+        """Say in the status bar where the connection stands (nothing once it is up)."""
+        self.connection = connection
+        if self.is_running:
+            self.draw_bars()
+
+    def forget(self) -> None:
+        """Forget the buffers of the previous connection: the relay may have restarted."""
+        current = self.state.current
+        self.previous = (
+            current.full_name if current is not None and current is not self.local else ""
+        )
+        self.state.buffers = {self.local.pointer: self.local}
+        self.state.current = self.local
+        self.draw()
 
     def send(self, command: str, message_id: str = "") -> None:
         """Send a command to the relay, saying so when the connection is gone."""
@@ -232,7 +318,8 @@ class Pywrc(App[None]):
             f" {LINE_KEYS}",
             "listlines",
         )
-        self.send("hdata window:gui_current_window/buffer full_name", "currentbuffer")
+        if not self.previous:  # the buffer WeeChat displays, when there is no previous one
+            self.send("hdata window:gui_current_window/buffer full_name", "currentbuffer")
         self.send("sync")
 
     def request_numbers(self) -> None:
@@ -244,7 +331,8 @@ class Pywrc(App[None]):
         if message.id == "completion":
             self.complete(message)
             return
-        if message.id == "_upgrade_ended":
+        if message.id == "_upgrade_ended":  # WeeChat restarted, with new buffer pointers
+            self.forget()
             self.request_buffers()
             return
         if message.id == "currentbuffer":  # the buffer displayed by WeeChat itself
@@ -256,7 +344,7 @@ class Pywrc(App[None]):
         if NUMBERS in changed:
             self.request_numbers()
         if message.id == "listbuffers" and self.state.current is self.local:
-            self.switch_to(self.first_buffer())
+            self.switch_to(self.displayed_buffer())
         elif added:
             self.append_lines(added)
         elif LINES in changed:
@@ -286,6 +374,11 @@ class Pywrc(App[None]):
             (buffer for buffer in self.state.sorted_buffers() if buffer is not self.local), None
         )
 
+    def displayed_buffer(self) -> Buffer | None:
+        """The buffer to come back to once the buffers are known, or the first one."""
+        previous = self.state.find(self.previous) if self.previous else None
+        return previous or self.first_buffer()
+
     def echo(self, text: str, error: bool = False) -> None:
         """Write a message of the client itself in the local buffer."""
         prefix = "=!=" if error else "--"
@@ -309,7 +402,7 @@ class Pywrc(App[None]):
 
     def draw_bars(self) -> None:
         self.query_one("#buflist-items", Static).update(_join(render.buflist(self.state)))
-        self.query_one("#status", Static).update(render.status(self.state))
+        self.query_one("#status", Static).update(render.status(self.state, self.connection))
         self.query_one("#prompt", Static).update(render.prompt(self.state.current))
 
     def draw_nicklist(self) -> None:
@@ -413,6 +506,8 @@ class Pywrc(App[None]):
         command, _, argument = text.partition(" ")
         if command in ("/quit", "/disconnect"):
             self.exit()
+        elif command == "/reconnect":
+            self.action_reconnect()
         elif command == "/buffer" and (target := self.state.find(argument.strip())):
             self.switch_to(target)
         elif buffer is self.local:
