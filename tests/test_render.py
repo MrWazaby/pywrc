@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 
+from rich.text import Text
+
 from pywrc import render
 from pywrc.state import HIGHLIGHT, MESSAGE, Buffer, Line, State
 
@@ -32,6 +34,34 @@ def test_wrapped_lines_are_aligned_under_the_message():
 def test_line_without_date_is_not_aligned():
     [text] = render.line(Line(message="no time here"), width=80, align=8)
     assert text.plain == "no time here"
+
+
+def links(*texts) -> list[str]:
+    """The URLs the hyperlinks of those texts point at, in order."""
+    return [
+        span.style.link for text in texts for span in text.spans if getattr(span.style, "link", "")
+    ]
+
+
+def test_a_wrapped_url_stays_one_link_on_every_line_it_takes():
+    url = "https://example.com/" + "some/long/path/" * 4
+    item = Line(date=DATE, prefix="nick", message=f"see {url} for the details")
+    lines = render.line(item, width=len(when()) + 40, align=4)
+    assert len(lines) > 1  # the URL does not fit on a single line
+    urls = links(*lines)
+    assert len(urls) > 1 and set(urls) == {url}  # each line carries the URL, not the part it shows
+
+
+def test_a_url_leaves_out_the_punctuation_that_follows_it():
+    text = render.links(
+        Text("see https://example.com/page, then https://example.org/wiki/WeeChat_(client).")
+    )
+    assert links(text) == ["https://example.com/page", "https://example.org/wiki/WeeChat_(client)"]
+
+
+def test_a_title_with_a_url_is_a_link_too():
+    buffer = Buffer("0x1", title="the channel of https://weechat.org/")
+    assert links(render.title(buffer)) == ["https://weechat.org/"]
 
 
 def test_prefix_column_is_the_widest_prefix():

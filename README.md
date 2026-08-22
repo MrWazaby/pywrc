@@ -106,7 +106,9 @@ The keys are the WeeChat ones:
 | `ctrl+l`                             | redraw the screen                       |
 | `ctrl+a`, `ctrl+e`, `ctrl+w`, `ctrl+u`, `ctrl+k` | edit the input line          |
 
-The input line wraps over as many lines as it needs, like the input bar of WeeChat.
+The input line wraps over as many lines as it needs, like the input bar of WeeChat, and
+the URLs of the chat are marked as hyperlinks: a link split over two lines stays one link
+for the terminal, which opens it whole (with the modifier your terminal asks for).
 
 Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands work
 (`/join`, `/query`, `/msg`, `/close`, ...). Three commands are handled by pywrc itself:
