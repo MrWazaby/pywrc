@@ -104,6 +104,8 @@ The keys are the WeeChat ones:
 | `up` / `down`                        | previous / next command                 |
 | `tab`                                | completion (done by WeeChat)            |
 | `ctrl+l`                             | redraw the screen                       |
+| `ctrl+c`                             | copy the selected text                  |
+| `alt+enter`, `shift+enter`           | new line in the input                   |
 | `ctrl+a`, `ctrl+e`, `ctrl+w`, `ctrl+u`, `ctrl+k` | edit the input line          |
 
 The input line wraps over as many lines as it needs, like the input bar of WeeChat, and
@@ -117,6 +119,16 @@ Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands
   the remote WeeChat),
 - `/reconnect` drops the connection to the relay and takes it up again,
 - `/quit` and `/disconnect` close pywrc, leaving WeeChat running.
+
+## Copying and pasting
+
+Text is selected in the chat with the mouse and copied with `ctrl+c`; the selection of
+the terminal itself still works, with the modifier it asks for (usually shift). What is
+copied is the line as it is displayed, time and prefix included.
+
+A paste of several lines is kept whole: the input line grows to show it and each of its
+lines is sent as its own message, the way WeeChat does it. A new line can be typed with
+`alt+enter` (or `shift+enter`), in the terminals that tell them apart from `enter`.
 
 ## Connection
 

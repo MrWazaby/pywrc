@@ -11,6 +11,7 @@ import re
 import time
 from collections.abc import Iterable
 
+from rich.cells import get_character_cell_size
 from rich.console import Console
 from rich.style import Style
 from rich.text import Text
@@ -74,6 +75,30 @@ def links(text: Text) -> Text:
         if url:
             text.stylize(Style(link=url), match.start(), match.start() + len(url))
     return text
+
+
+def wrap(value: str, width: int) -> list[tuple[int, int]]:
+    """Where the input line breaks: at the width of the bar, and at its own newlines.
+
+    Each pair is the slice of the value a line of the bar displays. The last line
+    always has room for the cursor sitting after the value.
+    """
+    lines: list[tuple[int, int]] = []
+    width = max(width, 1)
+    start = cells = 0
+    for index, char in enumerate(value):
+        if char == "\n":  # a newline of a pasted text ends the line it is on
+            lines.append((start, index))
+            start, cells = index + 1, 0
+        elif cells + (size := get_character_cell_size(char)) > width:
+            lines.append((start, index))
+            start, cells = index, size
+        else:
+            cells += size
+    lines.append((start, len(value)))
+    if cells == width:  # the cursor would have nowhere to sit after the last character
+        lines.append((len(value), len(value)))
+    return lines
 
 
 def _time(date: int) -> Text:

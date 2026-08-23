@@ -8,16 +8,17 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from rich.cells import cell_len
+from rich.cells import get_character_cell_size
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.events import MouseDown, MouseMove, Resize
+from textual.events import MouseDown, MouseMove, Paste, Resize
 from textual.geometry import Region, Size
+from textual.selection import Selection
 from textual.strip import Strip
 from textual.widgets import Input, RichLog, Static
-from textual.widgets.input import Selection
+from textual.widgets.input import Selection as InputSelection
 
 from . import colors, render
 from .client import RelayClient, RelayError
@@ -45,8 +46,12 @@ DISCONNECTED = "not connected"
 """What the status bar says while the relay is out of reach."""
 
 
-class Chat(RichLog):
-    """The chat area: pywrc wraps the lines itself, so it is redrawn when its width changes."""
+class Chat(RichLog, can_focus=False):
+    """The chat area: pywrc wraps the lines itself, so it is redrawn when its width changes.
+
+    A RichLog cannot be selected with the mouse, which a chat has to be: the lines it
+    displays are given the offsets Textual selects on, and the text under a selection.
+    """
 
     width = 0
 
@@ -55,12 +60,35 @@ class Chat(RichLog):
             self.width = event.size.width
             self.app.call_after_refresh(self.app.draw_chat)  # type: ignore[attr-defined]
 
+    def render_line(self, y: int) -> Strip:
+        """Render a line of the chat, marking the part of it that is selected."""
+        scroll_x, scroll_y = self.scroll_offset
+        row = int(scroll_y) + y
+        strip = super().render_line(y).apply_offsets(int(scroll_x), row)
+        selection = self.text_selection
+        span = selection.get_span(row) if selection is not None else None
+        if span is None:
+            return strip
+        start, end = span
+        length = strip.cell_length
+        start, end = min(start, length), length if end == -1 else min(end, length)
+        if start >= end:
+            return strip
+        before, selected, after = strip.divide([start, end, length])
+        style = self.screen.get_component_rich_style("screen--selection")
+        return Strip.join([before, selected.apply_style(style), after])
+
+    def get_selection(self, selection: Selection) -> tuple[str, str] | None:
+        """The text under the selection: the lines of the chat as they are displayed."""
+        return selection.extract("\n".join(strip.text for strip in self.lines)), "\n"
+
 
 class InputBar(Input):
     """The input line, wrapped over as many lines as it needs, like the input bar of WeeChat.
 
     WeeChat lets its input bar grow until the window is full, then scrolls it to keep the
-    cursor in sight; a value longer than the bar is never scrolled sideways.
+    cursor in sight; a value longer than the bar is never scrolled sideways. A value can
+    hold newlines, which a paste of several lines brings in.
     """
 
     KEPT_LINES = 3
@@ -69,27 +97,40 @@ class InputBar(Input):
     row = 0
     """Line of the input the mouse points at: Input itself only looks at the column."""
 
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._wrapped: tuple[tuple[str, int], list[tuple[int, int]]] = (("", 0), [(0, 0)])
+
     @property
     def content_width(self) -> int:
         """Width the value is wrapped over: the bar itself, since it never scrolls sideways."""
         return max(self.scrollable_content_region.width, 1)
 
-    def rows(self, width: int = 0) -> int:
-        """Screen lines taken by the value, with the room the cursor needs after it."""
-        width = width or self.content_width
-        return max(1, -(-(cell_len(self.value) + 1) // max(width, 1)))
+    @property
+    def lines(self) -> list[tuple[int, int]]:
+        """The slice of the value each line of the bar displays."""
+        key = (self.value, self.content_width)
+        if self._wrapped[0] != key:
+            self._wrapped = (key, render.wrap(*key))
+        return self._wrapped[1]
 
     def get_content_height(self, container: Size, viewport: Size, width: int) -> int:
-        return min(self.rows(width), max(viewport.height - self.KEPT_LINES, 1))
+        rows = len(render.wrap(self.value, width))
+        return min(rows, max(viewport.height - self.KEPT_LINES, 1))
+
+    def cursor_row(self) -> int:
+        """The line the cursor is on, the last one it can be when two lines meet."""
+        cursor = self.cursor_position
+        rows = (row for row, (start, end) in enumerate(self.lines) if start <= cursor <= end)
+        return max(rows, default=0)
 
     def measure(self) -> None:
         """Tell the widget how many lines the value takes, so that it can scroll to them."""
-        self.virtual_size = Size(self.content_width, self.rows())
+        self.virtual_size = Size(self.content_width, len(self.lines))
 
     def show_cursor(self) -> None:
         """Scroll the bar to the line the cursor is on, the way WeeChat does when it is full."""
-        row = cell_len(self.value[: self.cursor_position]) // self.content_width
-        self.scroll_to_region(Region(0, row, 1, 1), force=True, animate=False)
+        self.scroll_to_region(Region(0, self.cursor_row(), 1, 1), force=True, animate=False)
 
     def on_resize(self) -> None:
         self.measure()
@@ -99,9 +140,16 @@ class InputBar(Input):
         self.measure()
         self.show_cursor()
 
-    def _watch_selection(self, selection: Selection) -> None:
+    def _watch_selection(self, selection: InputSelection) -> None:
         super()._watch_selection(selection)
         self.show_cursor()
+
+    def _on_paste(self, event: Paste) -> None:
+        """Paste everything that was pasted: Input keeps the first line and drops the rest."""
+        if event.text:
+            self.replace(event.text, *self.selection)
+        event.prevent_default()  # Input would paste the first line of it once more
+        event.stop()
 
     def on_mouse_down(self, event: MouseDown) -> None:
         self.row = event.get_content_offset_capture(self).y
@@ -110,27 +158,45 @@ class InputBar(Input):
         self.row = event.get_content_offset_capture(self).y
 
     def _cell_offset_to_index(self, offset: int) -> int:
-        """Where the mouse points at, counting the lines the value is wrapped over."""
-        row = self.row + int(self.scroll_offset.y)
-        return super()._cell_offset_to_index(offset + row * self.content_width)
+        """Where the mouse points at, on the line of the bar it points at."""
+        lines = self.lines
+        start, end = lines[min(self.row + int(self.scroll_offset.y), len(lines) - 1)]
+        cells = 0
+        for index in range(start, end):
+            cells += get_character_cell_size(self.value[index])
+            if cells > offset:
+                return index
+        return end
 
     def render_line(self, y: int) -> Strip:
         """Render one of the lines the value is wrapped over."""
         width = self.content_width
-        text = Text(self.value, no_wrap=True, overflow="ignore", end="")
-        text.pad_right(1)  # where the cursor sits once the value is fully typed
+        lines = self.lines
+        row = y + int(self.scroll_offset.y)
+        if row >= len(lines):
+            return Strip.blank(width, self.rich_style)
+        start, end = lines[row]
+        text = Text(self.value[start:end], no_wrap=True, overflow="ignore", end="")
+        text.pad_right(1)  # where the cursor sits at the end of a line
         if self.has_focus:
-            start, end = sorted(self.selection)
-            if start != end:
-                text.stylize_before(self.get_component_rich_style("input--selection"), start, end)
-            if self._cursor_visible:
-                cursor = self.cursor_position
+            self.mark_selection(text, start, end)
+            if self._cursor_visible and row == self.cursor_row():
+                cursor = self.cursor_position - start
                 text.stylize(self.get_component_rich_style("input--cursor"), cursor, cursor + 1)
         options = self.app.console_options.update_width(text.cell_len)
         strip = Strip(self.app.console.render(text, options))
-        row = y + int(self.scroll_offset.y)
-        strip = strip.crop(row * width, (row + 1) * width)
-        return strip.extend_cell_length(width).apply_style(self.rich_style)
+        return strip.crop(0, width).extend_cell_length(width).apply_style(self.rich_style)
+
+    def mark_selection(self, text: Text, start: int, end: int) -> None:
+        """Mark the part of a line that is selected, for ctrl+c to take it."""
+        first, last = sorted(self.selection)
+        first, last = max(first, start) - start, min(last, end) - start
+        if first < last:
+            text.stylize_before(self.get_component_rich_style("input--selection"), first, last)
+
+
+class Sidebar(VerticalScroll, can_focus=False):
+    """A bar beside the chat: it scrolls, but the focus stays on the input line."""
 
 
 @dataclass
@@ -183,6 +249,7 @@ class Pywrc(App[None]):
         Binding("up", "history(-1)", "Previous command", show=False),
         Binding("down", "history(1)", "Next command", show=False),
         Binding("ctrl+l", "redraw", "Refresh the screen", show=False),
+        Binding("alt+enter,shift+enter", "newline", "Insert a new line", priority=True, show=False),
     ]
 
     def __init__(self, config: Config) -> None:
@@ -205,12 +272,12 @@ class Pywrc(App[None]):
 
     def compose(self) -> ComposeResult:
         with Horizontal():
-            yield VerticalScroll(Static(id="buflist-items"), id="buflist")
+            yield Sidebar(Static(id="buflist-items"), id="buflist")
             with Vertical(id="window"):
                 yield Static(id="title")
                 with Horizontal(id="body"):
                     yield Chat(id="chat", min_width=0)
-                    yield VerticalScroll(Static(id="nicklist-items"), id="nicklist")
+                    yield Sidebar(Static(id="nicklist-items"), id="nicklist")
                 yield Static(id="status")
                 with Horizontal(id="bar"):
                     yield Static(id="prompt")
@@ -494,6 +561,10 @@ class Pywrc(App[None]):
         history = [*buffer.history, ""]
         self.set_input(history[self.history_index])
 
+    def action_newline(self) -> None:
+        """Insert a newline in the input, like alt+enter does in WeeChat."""
+        self.query_one("#input", InputBar).insert_text_at_cursor("\n")
+
     def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value
         self.set_input("")
@@ -503,6 +574,18 @@ class Pywrc(App[None]):
             return
         buffer.history.append(text)
         self.history_index = len(buffer.history)
+        lines = text.split("\n")
+        if len(lines) == 1 and self.command(text):
+            return
+        if buffer is self.local:
+            self.echo("local buffer: switch to a WeeChat buffer to send messages", error=True)
+            return
+        for line in lines:  # a pasted text is sent line by line, as WeeChat sends it
+            if line:
+                self.send(f"input {buffer.full_name} {line}")
+
+    def command(self, text: str) -> bool:
+        """Run the commands pywrc handles itself, and say whether it did."""
         command, _, argument = text.partition(" ")
         if command in ("/quit", "/disconnect"):
             self.exit()
@@ -510,10 +593,9 @@ class Pywrc(App[None]):
             self.action_reconnect()
         elif command == "/buffer" and (target := self.state.find(argument.strip())):
             self.switch_to(target)
-        elif buffer is self.local:
-            self.echo("local buffer: switch to a WeeChat buffer to send messages", error=True)
         else:
-            self.send(f"input {buffer.full_name} {text}")
+            return False
+        return True
 
     def action_complete(self) -> None:
         """Complete the word before the cursor, using the completion of WeeChat."""

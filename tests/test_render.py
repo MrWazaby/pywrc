@@ -36,6 +36,19 @@ def test_line_without_date_is_not_aligned():
     assert text.plain == "no time here"
 
 
+def test_the_input_line_breaks_at_the_width_and_at_its_newlines():
+    assert render.wrap("", 5) == [(0, 0)]
+    assert render.wrap("abc", 5) == [(0, 3)]
+    assert render.wrap("abcdefgh", 5) == [(0, 5), (5, 8)]
+    assert render.wrap("ab\ncd", 5) == [(0, 2), (3, 5)]  # the newline is not displayed
+    assert render.wrap("日本語です", 5) == [(0, 2), (2, 4), (4, 5)]  # two cells per character
+
+
+def test_a_full_line_leaves_room_for_the_cursor_after_it():
+    assert render.wrap("abcde", 5) == [(0, 5), (5, 5)]
+    assert render.wrap("abcde\n", 5) == [(0, 5), (6, 6)]
+
+
 def links(*texts) -> list[str]:
     """The URLs the hyperlinks of those texts point at, in order."""
     return [

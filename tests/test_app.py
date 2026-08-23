@@ -1,12 +1,19 @@
-"""The application itself: the input line and what a lost connection leaves behind."""
+"""The application itself: the input line, copying, pasting, and a lost connection."""
 
 from __future__ import annotations
 
+from textual.events import Paste
+from textual.geometry import Offset
+from textual.selection import Selection
+
 from pywrc.app import Pywrc
 from pywrc.config import Config
+from pywrc.state import Line
 
 VALUE = "abcdefghij" * 8
 """Longer than the input line of a screen 40 columns wide."""
+
+DATE = 1321993456
 
 
 async def nothing() -> None:
@@ -31,7 +38,7 @@ async def test_the_input_line_wraps_over_as_many_lines_as_it_needs():
         input_ = app.query_one("#input")
         app.set_input(VALUE)
         await pilot.pause()
-        assert input_.size.height == input_.rows() > 1
+        assert input_.size.height == len(input_.lines) > 1
         assert "".join(rows(app)).rstrip() == VALUE  # the whole value is displayed
 
 
@@ -42,8 +49,9 @@ async def test_the_input_line_leaves_the_rest_of_the_screen_alone():
         app.set_input("x" * 1000)
         await pilot.pause()
         assert input_.size.height == 12 - type(input_).KEPT_LINES
-        assert input_.rows() > input_.size.height  # more lines than the bar can show
-        assert input_.scroll_offset.y == input_.rows() - input_.size.height  # the cursor is seen
+        hidden = len(input_.lines) - input_.size.height
+        assert hidden > 0  # more lines than the bar can show
+        assert input_.scroll_offset.y == hidden  # scrolled to the last of them, where the cursor is
 
 
 async def test_clicking_a_wrapped_line_moves_the_cursor_there():
@@ -54,6 +62,41 @@ async def test_clicking_a_wrapped_line_moves_the_cursor_there():
         await pilot.pause()
         await pilot.click("#input", offset=(3, 1))
         assert input_.cursor_position == input_.content_width + 3
+
+
+async def test_pasting_several_lines_keeps_them_all():
+    app = pywrc()
+    async with app.run_test(size=(40, 12)) as pilot:
+        input_ = app.query_one("#input")
+        input_.post_message(Paste("first\nsecond\nthird"))
+        await pilot.pause()
+        assert input_.value == "first\nsecond\nthird"  # Input keeps the first line only
+        assert [row.rstrip() for row in rows(app)] == ["first", "second", "third"]
+
+
+async def test_the_chat_can_be_selected_and_copied():
+    app = pywrc()
+    async with app.run_test(size=(40, 12)) as pilot:
+        app.local.lines.append(Line(date=DATE, prefix="bob", message="hello there"))
+        app.draw_chat()
+        await pilot.pause()
+        chat = app.query_one("#chat")
+        line = chat.lines[-1].text.rstrip()
+        selection = Selection(
+            Offset(0, len(chat.lines) - 1), Offset(len(line), len(chat.lines) - 1)
+        )
+        text, _ = chat.get_selection(selection)
+        assert text == line  # the line as it is displayed, prefix and time included
+
+
+async def test_clicking_the_chat_leaves_the_focus_on_the_input():
+    app = pywrc()
+    async with app.run_test(size=(40, 12)) as pilot:
+        app.local.lines.append(Line(date=DATE, prefix="bob", message="hello there"))
+        app.draw_chat()
+        await pilot.pause()
+        await pilot.click("#chat", offset=(4, 0))
+        assert app.focused is app.query_one("#input")  # what is typed next still arrives
 
 
 async def test_a_lost_connection_leaves_the_buffer_to_come_back_to():
