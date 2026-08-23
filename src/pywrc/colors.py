@@ -7,6 +7,9 @@ attribute and 0x1C resets everything.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
+
+from rich.color import Color
 from rich.style import Style
 from rich.text import Text
 
@@ -57,7 +60,7 @@ _RICH_COLORS = {
 }
 
 # Default value of the "weechat.color.*" options, as (foreground, background).
-OPTIONS: dict[str, tuple[str, str | None]] = {
+DEFAULTS: dict[str, tuple[str, str | None]] = {
     "separator": ("236", None),
     "chat": ("default", None),
     "chat_time": ("default", None),
@@ -108,6 +111,39 @@ OPTIONS: dict[str, tuple[str, str | None]] = {
     "status_count_other": ("default", None),
     "status_more": ("yellow", None),
 }
+
+OPTIONS = dict(DEFAULTS)
+"""The colors in use: the defaults, until WeeChat and the configuration say otherwise."""
+
+
+def _option(name: str) -> tuple[str, bool] | None:
+    """The option a name points at, and whether it holds its background."""
+    name = name.removeprefix("weechat.color.")
+    if name.endswith("_bg") and name.removesuffix("_bg") in DEFAULTS:
+        return name.removesuffix("_bg"), True
+    return (name, False) if name in DEFAULTS else None
+
+
+def unknown(names: Iterable[str]) -> list[str]:
+    """The names that are no color of WeeChat, among those given."""
+    return sorted(name for name in names if _option(name) is None)
+
+
+def theme(values: Mapping[str, str]) -> None:
+    """Set the colors to those values, the WeeChat defaults holding for the rest.
+
+    Names are the "weechat.color.*" options, with or without their prefix. WeeChat keeps
+    the background of an option in an option of its own, "chat_highlight_bg" holding the
+    background of "chat_highlight"; the names of no interest to pywrc are left out.
+    """
+    OPTIONS.update(DEFAULTS)
+    for name, value in values.items():
+        if (option := _option(name)) is None:
+            continue
+        key, background = option
+        foreground, bg = OPTIONS[key]
+        OPTIONS[key] = (foreground, value) if background else (value, bg)
+
 
 # Options addressed by the two digits of a color code, in the order of the
 # t_gui_color_enum enumeration (10 obsolete nick colors sit between
@@ -185,10 +221,29 @@ def color(spec: str | None) -> str | None:
     return _RICH_COLORS.get(spec)
 
 
+def attributes(spec: str | None) -> dict[str, bool]:
+    """The attributes a color carries: "*white" is bold, "_cyan" is underlined."""
+    found = {}
+    for char in spec or "":
+        if char not in _ATTRIBUTES:
+            break
+        if attribute := _ATTRIBUTES[char]:
+            found[attribute] = True
+    return found
+
+
 def style(option: str, **extra: bool) -> Style:
     """The Rich style of a "weechat.color.*" option."""
     foreground, background = OPTIONS.get(option, ("default", None))
-    return Style(color=color(foreground), bgcolor=color(background), **extra)
+    return Style(
+        color=color(foreground), bgcolor=color(background), **{**attributes(foreground), **extra}
+    )
+
+
+def hexadecimal(spec: str | None) -> str | None:
+    """A WeeChat color as "#rrggbb", for the parts of the screen Textual paints itself."""
+    name = color(spec)
+    return Color.parse(name).get_truecolor().hex if name else None
 
 
 def code(option: str) -> str:

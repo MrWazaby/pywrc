@@ -88,6 +88,23 @@ do it, and `websocket_path` for another URL. If WeeChat restricts the origins of
 clients (`/set relay.network.websocket_allowed_origins`), `websocket_origin` must be one of
 them, since pywrc sends no origin by default.
 
+## Colors
+
+pywrc paints its screen with the colors of the WeeChat it connects to: the
+`weechat.color.*` options and the colors of the title and status bars are read from the
+relay, so the client looks like the WeeChat it is a client of. They are read again after
+a reconnection, since the relay may be another WeeChat by then.
+
+Any of them is set locally in `~/.config/pywrc/pywrc.toml`, where it wins over what the
+relay says:
+
+```toml
+[colors]
+chat_nick = "lightblue"   # any "weechat.color.*" option, with or without its prefix
+chat_highlight_bg = "52"  # backgrounds are options of their own, as in WeeChat
+status_number = "*yellow" # "*" is bold, "_" underlined, "/" italic, like in WeeChat
+```
+
 ## Keys
 
 The keys are the WeeChat ones:
@@ -167,8 +184,8 @@ uv run cz bump           # tag a release: version, changelog and tag
 ```
 
 There is no fake relay in the tests: the unit tests cover the protocol codec, the color
-codes, the state, the rendering and the input line, and everything else is tried against
-a real WeeChat:
+codes, the state, the rendering, the configuration and the input line, and everything
+else is tried against a real WeeChat:
 
 ```console
 weechat-headless --dir /tmp/wc --stdout \
@@ -185,7 +202,7 @@ uv run pywrc --hostname 127.0.0.1 --port 9001 --no-tls
 | `protocol.py` | decoding of the binary messages of the relay, encoding of commands |
 | `client.py`   | connection, handshake, authentication, message stream             |
 | `state.py`    | buffers, lines, nicks and hotlist, updated from the messages      |
-| `colors.py`   | WeeChat color codes to Rich styles                                |
+| `colors.py`   | WeeChat color codes and color options, as Rich styles                                |
 | `render.py`   | chat lines, buflist, nicklist and bars, laid out like WeeChat     |
 | `app.py`      | the Textual application: layout, keys, input                      |
 | `config.py`   | configuration file, environment and command line                  |

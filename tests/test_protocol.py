@@ -6,7 +6,7 @@ import zlib
 
 import pytest
 
-from pywrc.protocol import Hdata, ProtocolError, decode_message, encode_command
+from pywrc.protocol import Hdata, Infolist, ProtocolError, decode_message, encode_command
 
 
 def string(value: str) -> bytes:
@@ -108,7 +108,9 @@ def test_decode_infolist():
         b"\x00\x00\x00\x02" + string("pointer") + b"ptr" + counted("12345"),
         string("number") + b"int" + b"\x00\x00\x00\x01",
     )
-    assert decode_message(body).objects == [("buffer", [{"pointer": "0x12345", "number": 1}])]
+    message_ = decode_message(body)
+    assert message_.objects == [Infolist("buffer", [{"pointer": "0x12345", "number": 1}])]
+    assert message_.infolist is message_.objects[0]
 
 
 def test_decode_compressed_message():

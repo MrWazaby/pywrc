@@ -6,8 +6,10 @@ from textual.events import Paste
 from textual.geometry import Offset
 from textual.selection import Selection
 
+from pywrc import colors
 from pywrc.app import Pywrc
 from pywrc.config import Config
+from pywrc.protocol import Infolist, Message
 from pywrc.state import Line
 
 VALUE = "abcdefghij" * 8
@@ -97,6 +99,31 @@ async def test_clicking_the_chat_leaves_the_focus_on_the_input():
         await pilot.pause()
         await pilot.click("#chat", offset=(4, 0))
         assert app.focused is app.query_one("#input")  # what is typed next still arrives
+
+
+async def test_the_colors_of_the_remote_weechat_are_taken_as_they_come():
+    app = pywrc()
+    app.config.colors = {"chat_nick": "*lightblue"}  # the configuration wins over the relay
+    async with app.run_test(size=(40, 12)) as pilot:
+        app.handle(
+            Message(
+                "colors",
+                [
+                    Infolist(
+                        "option",
+                        [
+                            {"full_name": "weechat.color.chat_nick", "value": "red"},
+                            {"full_name": "weechat.color.chat_host", "value": "green"},
+                        ],
+                    )
+                ],
+            )
+        )
+        app.handle(Message("bars", [Infolist("bar", [{"name": "status", "color_bg": "53"}])]))
+        await pilot.pause()
+        assert colors.OPTIONS["chat_host"] == ("green", None)
+        assert colors.OPTIONS["chat_nick"] == ("*lightblue", None)
+        assert app.query_one("#status").styles.background.hex == "#5F005F"  # the 53 of WeeChat
 
 
 async def test_a_lost_connection_leaves_the_buffer_to_come_back_to():

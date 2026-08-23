@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from rich.style import Style
+
 from pywrc import colors
 
 
@@ -54,3 +56,35 @@ def test_code_of_an_option_can_be_parsed_back():
     assert styles(colors.parse(colors.code("chat_prefix_error") + "=!=")) == [
         ("=!=", "bright_yellow")
     ]
+
+
+def test_a_theme_sets_the_colors_and_their_backgrounds():
+    colors.theme({"weechat.color.chat_nick": "red", "chat_highlight_bg": "52"})
+    assert colors.OPTIONS["chat_nick"] == ("red", None)
+    assert colors.OPTIONS["chat_highlight"] == ("yellow", "52")  # WeeChat keeps them apart
+    assert colors.style("chat_nick") == Style(color="red")
+
+
+def test_a_theme_leaves_the_defaults_to_what_it_does_not_name():
+    colors.theme({"chat_nick": "red"})
+    colors.theme({"chat_host": "blue"})
+    assert colors.OPTIONS["chat_nick"] == colors.DEFAULTS["chat_nick"]
+    assert colors.OPTIONS["chat_host"] == ("blue", None)
+
+
+def test_the_names_of_no_color_are_told_apart():
+    assert colors.unknown(["chat_nick", "weechat.color.chat_nick", "chat_highlight_bg"]) == []
+    assert colors.unknown(["chat_nicks", "look.buffer_time_format"]) == [
+        "chat_nicks",
+        "look.buffer_time_format",
+    ]
+
+
+def test_a_color_carries_the_attributes_of_weechat():
+    colors.theme({"chat_nick": "*_yellow"})
+    assert colors.style("chat_nick") == Style(color="bright_yellow", bold=True, underline=True)
+
+
+def test_the_colors_textual_paints_itself_are_given_to_it_as_hexadecimal():
+    assert colors.hexadecimal("234") == "#1c1c1c"
+    assert colors.hexadecimal("default") is None

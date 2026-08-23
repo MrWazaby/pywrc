@@ -261,6 +261,7 @@ class Pywrc(App[None]):
         self.state.current = self.local
         self.history_index = 0
         self.completion: Completion | None = None
+        colors.theme(config.colors)  # until the remote WeeChat says what its colors are
         self.connection = CONNECTING
         """What the status bar says about the connection, empty while the relay answers."""
         self.previous = ""
@@ -320,6 +321,7 @@ class Pywrc(App[None]):
             self.set_connection("")
             self.echo(f"Connected to {self.client.url}")
             self.forget()
+            self.request_colors()
             self.request_buffers()
             async for message in self.client.messages():
                 received += 1
@@ -389,6 +391,11 @@ class Pywrc(App[None]):
             self.send("hdata window:gui_current_window/buffer full_name", "currentbuffer")
         self.send("sync")
 
+    def request_colors(self) -> None:
+        """Ask for the colors of the remote WeeChat, to look the way it looks."""
+        self.send("infolist option 0x0 weechat.color.*", "colors")
+        self.send("infolist bar", "bars")
+
     def request_numbers(self) -> None:
         """Ask for the numbers of every buffer: the relay only sends the one that changed."""
         self.send("hdata buffer:gui_buffers(*) number,full_name", "renumber")
@@ -398,8 +405,15 @@ class Pywrc(App[None]):
         if message.id == "completion":
             self.complete(message)
             return
+        if message.id == "colors":
+            self.set_colors(message)
+            return
+        if message.id == "bars":
+            self.set_bars(message)
+            return
         if message.id == "_upgrade_ended":  # WeeChat restarted, with new buffer pointers
             self.forget()
+            self.request_colors()
             self.request_buffers()
             return
         if message.id == "currentbuffer":  # the buffer displayed by WeeChat itself
@@ -422,6 +436,24 @@ class Pywrc(App[None]):
             self.draw_nicklist()
         if TITLE in changed:
             self.draw_title()
+
+    def set_colors(self, message: Message) -> None:
+        """Take the colors of the remote WeeChat, those of the configuration winning."""
+        if (infolist := message.infolist) is None:
+            return
+        values = {item["full_name"]: item["value"] for item in infolist.items if item.get("value")}
+        colors.theme(values | self.config.colors)
+        self.draw()
+
+    def set_bars(self, message: Message) -> None:
+        """Paint the title and the status bar the way the bars of WeeChat are painted."""
+        if (infolist := message.infolist) is None:
+            return
+        for bar in infolist.items:
+            if bar.get("name") in ("title", "status"):
+                widget = self.query_one(f"#{bar['name']}", Static)
+                widget.styles.background = colors.hexadecimal(bar.get("color_bg")) or "ansi_default"
+                widget.styles.color = colors.hexadecimal(bar.get("color_fg")) or "ansi_default"
 
     def added_lines(self, message: Message) -> int:
         """Number of lines this message appends to the current buffer."""
