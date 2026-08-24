@@ -7,6 +7,15 @@ import inspect
 
 import pytest
 
+from pywrc import colors
+
+
+@pytest.fixture(autouse=True)
+def default_colors():
+    """The colors are global: a test that sets them does not set them for the next one."""
+    yield
+    colors.theme({})
+
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:

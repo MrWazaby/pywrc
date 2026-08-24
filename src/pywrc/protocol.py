@@ -32,6 +32,14 @@ class Hdata:
 
 
 @dataclass
+class Infolist:
+    """An "inl" object: the items of an infolist, under the name it goes by."""
+
+    name: str = ""
+    items: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
 class Message:
     """A message sent by the relay: an identifier and a list of objects."""
 
@@ -42,6 +50,11 @@ class Message:
     def hdata(self) -> Hdata | None:
         """The first hdata of the message, if any."""
         return next((obj for obj in self.objects if isinstance(obj, Hdata)), None)
+
+    @property
+    def infolist(self) -> Infolist | None:
+        """The first infolist of the message, if any."""
+        return next((obj for obj in self.objects if isinstance(obj, Infolist)), None)
 
 
 class _Decoder:
@@ -109,7 +122,7 @@ class _Decoder:
     def info(self) -> tuple[str | None, str | None]:
         return self.string(), self.string()
 
-    def infolist(self) -> tuple[str | None, list[dict[str, Any]]]:
+    def infolist(self) -> Infolist:
         name = self.string()
         items = []
         for _ in range(self.integer()):
@@ -118,7 +131,7 @@ class _Decoder:
                 variable = self.string()
                 item[variable] = self.object(self.type())
             items.append(item)
-        return name, items
+        return Infolist(name or "", items)
 
     def array(self) -> list[Any]:
         type_ = self.type()

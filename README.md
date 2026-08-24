@@ -88,6 +88,23 @@ do it, and `websocket_path` for another URL. If WeeChat restricts the origins of
 clients (`/set relay.network.websocket_allowed_origins`), `websocket_origin` must be one of
 them, since pywrc sends no origin by default.
 
+## Colors
+
+pywrc paints its screen with the colors of the WeeChat it connects to: the
+`weechat.color.*` options and the colors of the title and status bars are read from the
+relay, so the client looks like the WeeChat it is a client of. They are read again after
+a reconnection, since the relay may be another WeeChat by then.
+
+Any of them is set locally in `~/.config/pywrc/pywrc.toml`, where it wins over what the
+relay says:
+
+```toml
+[colors]
+chat_nick = "lightblue"   # any "weechat.color.*" option, with or without its prefix
+chat_highlight_bg = "52"  # backgrounds are options of their own, as in WeeChat
+status_number = "*yellow" # "*" is bold, "_" underlined, "/" italic, like in WeeChat
+```
+
 ## Keys
 
 The keys are the WeeChat ones:
@@ -104,14 +121,46 @@ The keys are the WeeChat ones:
 | `up` / `down`                        | previous / next command                 |
 | `tab`                                | completion (done by WeeChat)            |
 | `ctrl+l`                             | redraw the screen                       |
+| `ctrl+c`                             | copy the selected text                  |
+| `alt+enter`, `shift+enter`           | new line in the input                   |
 | `ctrl+a`, `ctrl+e`, `ctrl+w`, `ctrl+u`, `ctrl+k` | edit the input line          |
 
+The input line wraps over as many lines as it needs, like the input bar of WeeChat, and
+the URLs of the chat are marked as hyperlinks: a link split over two lines stays one link
+for the terminal, which opens it whole (with the modifier your terminal asks for).
+
 Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands work
-(`/join`, `/query`, `/msg`, `/close`, ...). Two commands are handled by pywrc itself:
+(`/join`, `/query`, `/msg`, `/close`, ...). Three commands are handled by pywrc itself:
 
 - `/buffer <number|name>` switches the displayed buffer (it does not move the buffer of
   the remote WeeChat),
+- `/reconnect` drops the connection to the relay and takes it up again,
 - `/quit` and `/disconnect` close pywrc, leaving WeeChat running.
+
+## Copying and pasting
+
+Dragging the mouse over the chat selects text, which `ctrl+c` copies: what is copied is
+the line as it is displayed, time and prefix included. It goes to the clipboard of the
+terminal, which works over ssh but which a number of terminals ignore, and to the one of
+the system when `wl-copy`, `xclip`, `xsel` or `pbcopy` is around. The selection of the
+terminal itself still works too, with the modifier it asks for, usually shift.
+
+A paste of several lines is kept whole: the input line grows to show it and each of its
+lines is sent as its own message, the way WeeChat does it. A new line can be typed with
+`alt+enter` (or `shift+enter`), in the terminals that tell them apart from `enter`.
+
+## Connection
+
+pywrc pings the relay every 30 seconds and connects again on its own whenever the relay
+goes away, waiting a little longer after each attempt (1, 2, 5, 10, 30, then 60 seconds).
+The status bar says where things stand, and the buffers stay readable in the meantime:
+
+```
+[12:27] [3] [irc/libera] 3:#weechat{42} [not connected]
+```
+
+The buffers are asked again once the relay answers, since it may be another WeeChat by
+then, and the buffer that was displayed comes back.
 
 ## Development
 
@@ -137,7 +186,8 @@ uv run cz bump           # tag a release: version, changelog and tag
 ```
 
 There is no fake relay in the tests: the unit tests cover the protocol codec, the color
-codes, the state and the rendering, and everything else is tried against a real WeeChat:
+codes, the state, the rendering, the configuration and the input line, and everything
+else is tried against a real WeeChat:
 
 ```console
 weechat-headless --dir /tmp/wc --stdout \
@@ -154,7 +204,7 @@ uv run pywrc --hostname 127.0.0.1 --port 9001 --no-tls
 | `protocol.py` | decoding of the binary messages of the relay, encoding of commands |
 | `client.py`   | connection, handshake, authentication, message stream             |
 | `state.py`    | buffers, lines, nicks and hotlist, updated from the messages      |
-| `colors.py`   | WeeChat color codes to Rich styles                                |
+| `colors.py`   | WeeChat color codes and color options, as Rich styles                                |
 | `render.py`   | chat lines, buflist, nicklist and bars, laid out like WeeChat     |
 | `app.py`      | the Textual application: layout, keys, input                      |
 | `config.py`   | configuration file, environment and command line                  |

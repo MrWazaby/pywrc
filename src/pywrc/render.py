@@ -11,7 +11,9 @@ import re
 import time
 from collections.abc import Iterable
 
+from rich.cells import get_character_cell_size
 from rich.console import Console
+from rich.style import Style
 from rich.text import Text
 
 from . import colors
@@ -44,6 +46,60 @@ _BUFLIST_COLORS = {LOW: "white", MESSAGE: "brown", PRIVATE: "green", HIGHLIGHT: 
 _CONSOLE = Console()
 """Only used to measure text while wrapping."""
 
+URL = re.compile(r"(?:https?|ftps?|ircs?)://[^\s]+", re.IGNORECASE)
+"""What a terminal takes for a clickable URL."""
+
+_BRACKETS = {")": "(", "]": "[", "}": "{", ">": "<"}
+_TRAILING = ".,;:!?'\"" + "".join(_BRACKETS)
+"""Punctuation that ends the sentence a URL is in, rather than the URL itself."""
+
+
+def _url(match: str) -> str:
+    """The URL a match holds, without the punctuation that follows it."""
+    while match and match[-1] in _TRAILING:
+        opening = _BRACKETS.get(match[-1])
+        if opening and match.count(opening) >= match.count(match[-1]):
+            break  # a bracket of the URL, as in "en.wikipedia.org/wiki/WeeChat_(client)"
+        match = match[:-1]
+    return match
+
+
+def links(text: Text) -> Text:
+    """Mark the URLs of a text as hyperlinks.
+
+    Terminals find the URLs of the screen on their own, but a URL wrapped over two
+    lines is lost to them: a hyperlink carries the whole URL on each of its lines.
+    """
+    for match in URL.finditer(text.plain):
+        url = _url(match.group())
+        if url:
+            text.stylize(Style(link=url), match.start(), match.start() + len(url))
+    return text
+
+
+def wrap(value: str, width: int) -> list[tuple[int, int]]:
+    """Where the input line breaks: at the width of the bar, and at its own newlines.
+
+    Each pair is the slice of the value a line of the bar displays. The last line
+    always has room for the cursor sitting after the value.
+    """
+    lines: list[tuple[int, int]] = []
+    width = max(width, 1)
+    start = cells = 0
+    for index, char in enumerate(value):
+        if char == "\n":  # a newline of a pasted text ends the line it is on
+            lines.append((start, index))
+            start, cells = index + 1, 0
+        elif cells + (size := get_character_cell_size(char)) > width:
+            lines.append((start, index))
+            start, cells = index, size
+        else:
+            cells += size
+    lines.append((start, len(value)))
+    if cells == width:  # the cursor would have nowhere to sit after the last character
+        lines.append((len(value), len(value)))
+    return lines
+
 
 def _time(date: int) -> Text:
     """The time of a line, with delimiters colored like WeeChat does."""
@@ -61,7 +117,7 @@ def prefix_width(lines: Iterable[Line]) -> int:
 
 def line(item: Line, width: int, align: int) -> list[Text]:
     """Render a line as the list of screen lines it takes."""
-    message = colors.parse(item.message)
+    message = links(colors.parse(item.message))
     if not item.date:  # a line without time is not aligned
         return list(message.wrap(_CONSOLE, max(width, 1), overflow="fold"))
     prefix = colors.parse(item.prefix)
@@ -88,7 +144,7 @@ def chat(buffer: Buffer, width: int) -> list[Text]:
 
 def title(buffer: Buffer | None) -> Text:
     """The title bar: the title of the current buffer."""
-    return colors.parse(buffer.title) if buffer else Text()
+    return links(colors.parse(buffer.title)) if buffer else Text()
 
 
 def buflist(state: State) -> list[Text]:
@@ -150,8 +206,12 @@ def hotlist(state: State) -> Text:
     return _item(Text(HOTLIST_PREFIX) + Text(", ", delimiter).join(items), True)
 
 
-def status(state: State) -> Text:
-    """The status bar, with the same items as the default WeeChat one."""
+def status(state: State, connection: str = "") -> Text:
+    """The status bar, with the same items as the default WeeChat one.
+
+    A connection that is not up is said there too: WeeChat has no such item, but a
+    client that lost its relay has to say so somewhere.
+    """
     buffer = state.current
     items = [
         _item(time.strftime(ITEM_TIME_FORMAT), True),
@@ -171,6 +231,8 @@ def status(state: State) -> Text:
         items.append(current)
     if hot := hotlist(state):
         items.append(hot)
+    if connection:
+        items.append(_item(Text(connection, colors.style("chat_status_disabled")), True))
     return Text(" ").join(items)
 
 

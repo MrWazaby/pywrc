@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 
+from rich.text import Text
+
 from pywrc import render
 from pywrc.state import HIGHLIGHT, MESSAGE, Buffer, Line, State
 
@@ -32,6 +34,47 @@ def test_wrapped_lines_are_aligned_under_the_message():
 def test_line_without_date_is_not_aligned():
     [text] = render.line(Line(message="no time here"), width=80, align=8)
     assert text.plain == "no time here"
+
+
+def test_the_input_line_breaks_at_the_width_and_at_its_newlines():
+    assert render.wrap("", 5) == [(0, 0)]
+    assert render.wrap("abc", 5) == [(0, 3)]
+    assert render.wrap("abcdefgh", 5) == [(0, 5), (5, 8)]
+    assert render.wrap("ab\ncd", 5) == [(0, 2), (3, 5)]  # the newline is not displayed
+    assert render.wrap("日本語です", 5) == [(0, 2), (2, 4), (4, 5)]  # two cells per character
+
+
+def test_a_full_line_leaves_room_for_the_cursor_after_it():
+    assert render.wrap("abcde", 5) == [(0, 5), (5, 5)]
+    assert render.wrap("abcde\n", 5) == [(0, 5), (6, 6)]
+
+
+def links(*texts) -> list[str]:
+    """The URLs the hyperlinks of those texts point at, in order."""
+    return [
+        span.style.link for text in texts for span in text.spans if getattr(span.style, "link", "")
+    ]
+
+
+def test_a_wrapped_url_stays_one_link_on_every_line_it_takes():
+    url = "https://example.com/" + "some/long/path/" * 4
+    item = Line(date=DATE, prefix="nick", message=f"see {url} for the details")
+    lines = render.line(item, width=len(when()) + 40, align=4)
+    assert len(lines) > 1  # the URL does not fit on a single line
+    urls = links(*lines)
+    assert len(urls) > 1 and set(urls) == {url}  # each line carries the URL, not the part it shows
+
+
+def test_a_url_leaves_out_the_punctuation_that_follows_it():
+    text = render.links(
+        Text("see https://example.com/page, then https://example.org/wiki/WeeChat_(client).")
+    )
+    assert links(text) == ["https://example.com/page", "https://example.org/wiki/WeeChat_(client)"]
+
+
+def test_a_title_with_a_url_is_a_link_too():
+    buffer = Buffer("0x1", title="the channel of https://weechat.org/")
+    assert links(render.title(buffer)) == ["https://weechat.org/"]
 
 
 def test_prefix_column_is_the_widest_prefix():
@@ -69,6 +112,11 @@ def test_status_bar_shows_the_current_buffer_and_the_hotlist():
     text = render.status(state).plain
     assert f"[{time.strftime(render.ITEM_TIME_FORMAT)}] [3] [core] 1:core.weechat" in text
     assert "[H: 3:#weechat(2)]" in text
+
+
+def test_status_bar_says_when_the_relay_is_out_of_reach():
+    assert render.status(buffers(), "not connected").plain.endswith("[not connected]")
+    assert "connected" not in render.status(buffers()).plain
 
 
 def test_hotlist_shows_only_numbers_for_messages():
