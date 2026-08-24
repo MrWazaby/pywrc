@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from textual.events import Paste
 from textual.geometry import Offset
 from textual.selection import Selection
@@ -89,6 +91,35 @@ async def test_the_chat_can_be_selected_and_copied():
         )
         text, _ = chat.get_selection(selection)
         assert text == line  # the line as it is displayed, prefix and time included
+
+
+async def test_the_selected_part_of_the_chat_is_marked():
+    app = pywrc()
+    async with app.run_test(size=(40, 12)) as pilot:
+        for number in range(20):
+            app.local.lines.append(Line(date=DATE, prefix="bob", message=f"message {number}"))
+        app.draw_chat()
+        await pilot.pause()
+        chat = app.query_one("#chat")
+        row = int(chat.scroll_offset.y) + 1
+        app.screen.selections = {chat: Selection(Offset(0, row), Offset(6, row))}
+        backgrounds = [
+            segment.style.bgcolor for segment in chat.render_line(1) for _ in segment.text
+        ]
+        assert len(set(backgrounds[:6])) == 1  # the six cells under the selection stand out
+        assert backgrounds[0] != backgrounds[10]
+
+
+async def test_what_is_copied_goes_to_the_clipboard_of_the_system(tmp_path, monkeypatch):
+    copied = tmp_path / "copied"
+    clipboard = tmp_path / "wl-copy"
+    clipboard.write_text(f'#!/bin/sh\ncat > "{copied}"\n')
+    clipboard.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ['PATH']}")
+    app = pywrc()
+    async with app.run_test(size=(40, 12)):
+        app.copy_to_clipboard("hello there")
+        assert copied.read_text() == "hello there"  # the terminal is written to as well
 
 
 async def test_clicking_the_chat_leaves_the_focus_on_the_input():

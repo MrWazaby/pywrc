@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import shutil
+import subprocess
 import time
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 from rich.cells import get_character_cell_size
+from rich.segment import Segment
+from rich.style import Style
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -45,6 +49,17 @@ CONNECTING = "connecting..."
 DISCONNECTED = "not connected"
 """What the status bar says while the relay is out of reach."""
 
+CLIPBOARDS = (
+    ("wl-copy",),
+    ("xclip", "-selection", "clipboard"),
+    ("xsel", "--clipboard", "--input"),
+    ("pbcopy",),
+)
+"""Commands putting text in the clipboard of the system, tried in that order."""
+
+CLIPBOARD_TIMEOUT = 1.0
+"""Seconds given to such a command before giving up on it."""
+
 
 class Chat(RichLog, can_focus=False):
     """The chat area: pywrc wraps the lines itself, so it is redrawn when its width changes.
@@ -75,8 +90,18 @@ class Chat(RichLog, can_focus=False):
         if start >= end:
             return strip
         before, selected, after = strip.divide([start, end, length])
-        style = self.screen.get_component_rich_style("screen--selection")
-        return Strip.join([before, selected.apply_style(style), after])
+        marked = Segment.apply_style(selected, post_style=self.selection_style())
+        return Strip.join([before, Strip(list(marked), selected.cell_length), after])
+
+    def selection_style(self) -> Style:
+        """What a selected part of a line looks like, painted as Textual paints its own.
+
+        The color of a selection is translucent: it is blended with what is under it,
+        and it leaves the text its own color unless the theme says otherwise.
+        """
+        styles = self.screen.get_component_styles("screen--selection")
+        style = Style(bgcolor=(self.background_colors[1] + styles.background).rich_color)
+        return style + Style(color=styles.color.rich_color) if styles.color.a else style
 
     def get_selection(self, selection: Selection) -> tuple[str, str] | None:
         """The text under the selection: the lines of the chat as they are displayed."""
@@ -676,6 +701,19 @@ class Pywrc(App[None]):
     def on_input_changed(self, event: Input.Changed) -> None:
         if self.completion is not None and event.value != self.completion.text:
             self.completion = None
+
+    def copy_to_clipboard(self, text: str) -> None:
+        """Copy to the clipboard of the terminal, and to the one of the system as well.
+
+        Textual writes the text to the terminal itself, which works over ssh but which
+        many terminals ignore; the clipboard of the system is the one that works there.
+        """
+        super().copy_to_clipboard(text)
+        command = next((item for item in CLIPBOARDS if shutil.which(item[0])), None)
+        if command is None:
+            return
+        with contextlib.suppress(OSError, subprocess.SubprocessError):
+            subprocess.run(command, input=text.encode(), timeout=CLIPBOARD_TIMEOUT, check=False)
 
     async def on_unmount(self) -> None:
         await self.client.close()

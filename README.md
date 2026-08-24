@@ -139,9 +139,11 @@ Anything typed is sent to the current buffer of WeeChat, so all WeeChat commands
 
 ## Copying and pasting
 
-Text is selected in the chat with the mouse and copied with `ctrl+c`; the selection of
-the terminal itself still works, with the modifier it asks for (usually shift). What is
-copied is the line as it is displayed, time and prefix included.
+Dragging the mouse over the chat selects text, which `ctrl+c` copies: what is copied is
+the line as it is displayed, time and prefix included. It goes to the clipboard of the
+terminal, which works over ssh but which a number of terminals ignore, and to the one of
+the system when `wl-copy`, `xclip`, `xsel` or `pbcopy` is around. The selection of the
+terminal itself still works too, with the modifier it asks for, usually shift.
 
 A paste of several lines is kept whole: the input line grows to show it and each of its
 lines is sent as its own message, the way WeeChat does it. A new line can be typed with
