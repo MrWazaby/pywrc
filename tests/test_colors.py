@@ -85,6 +85,8 @@ def test_a_color_carries_the_attributes_of_weechat():
     assert colors.style("chat_nick") == Style(color="bright_yellow", bold=True, underline=True)
 
 
-def test_the_colors_textual_paints_itself_are_given_to_it_as_hexadecimal():
-    assert colors.hexadecimal("234") == "#1c1c1c"
-    assert colors.hexadecimal("default") is None
+def test_the_colors_textual_paints_itself_are_given_to_it_as_they_are():
+    """A palette number is the color it stands for, a basic color the one of the terminal."""
+    assert colors.painted("234").hex == "#1C1C1C"
+    assert colors.painted("red").ansi == 1  # the red of the terminal, whatever it paints it
+    assert colors.painted("default") == colors.TERMINAL

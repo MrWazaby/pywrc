@@ -9,9 +9,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from rich.color import Color
+from rich.color import Color, ColorType
 from rich.style import Style
 from rich.text import Text
+from textual.color import Color as TerminalColor
 
 COLOR = "\x19"
 SET_ATTR = "\x1a"
@@ -240,10 +241,23 @@ def style(option: str, **extra: bool) -> Style:
     )
 
 
-def hexadecimal(spec: str | None) -> str | None:
-    """A WeeChat color as "#rrggbb", for the parts of the screen Textual paints itself."""
+TERMINAL = TerminalColor.parse("ansi_default")
+"""The color of the terminal itself, the one WeeChat calls "default"."""
+
+
+def painted(spec: str | None) -> TerminalColor:
+    """A WeeChat color for the parts of the screen Textual paints itself.
+
+    A color WeeChat leaves to the terminal is left to it here too, and so are the 16
+    basic colors, which a terminal paints as it likes; a palette number is the color
+    it stands for, the one the chat is painted with.
+    """
     name = color(spec)
-    return Color.parse(name).get_truecolor().hex if name else None
+    if name is None:
+        return TERMINAL
+    rich = Color.parse(name)
+    basic = rich.type is ColorType.STANDARD  # the 16 colors of the terminal itself
+    return TerminalColor(*rich.get_truecolor(), ansi=rich.number if basic else None)
 
 
 def code(option: str) -> str:

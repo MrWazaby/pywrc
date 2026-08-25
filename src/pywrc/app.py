@@ -247,7 +247,7 @@ class Pywrc(App[None]):
     #buflist-items, #nicklist-items { width: auto; }
     #buflist { border-right: solid #303030; }
     #nicklist { border-left: solid #303030; }
-    #chat { width: 1fr; }
+    #chat { width: 1fr; background: ansi_default; color: ansi_default; }
     #bar { height: auto; }
     #prompt { width: auto; margin-right: 1; }
     #input, #input:focus {
@@ -477,8 +477,8 @@ class Pywrc(App[None]):
         for bar in infolist.items:
             if bar.get("name") in ("title", "status"):
                 widget = self.query_one(f"#{bar['name']}", Static)
-                widget.styles.background = colors.hexadecimal(bar.get("color_bg")) or "ansi_default"
-                widget.styles.color = colors.hexadecimal(bar.get("color_fg")) or "ansi_default"
+                widget.styles.background = colors.painted(bar.get("color_bg"))
+                widget.styles.color = colors.painted(bar.get("color_fg"))
 
     def added_lines(self, message: Message) -> int:
         """Number of lines this message appends to the current buffer."""
@@ -516,10 +516,23 @@ class Pywrc(App[None]):
     # -- drawing -------------------------------------------------------------
 
     def draw(self) -> None:
+        self.paint_chat()
         self.draw_title()
         self.draw_chat()
         self.draw_nicklist()
         self.draw_bars()
+
+    def paint_chat(self) -> None:
+        """Paint the chat area with "weechat.color.chat", the way WeeChat paints its own.
+
+        A WeeChat that names no color for its chat, which is what it does out of the box,
+        leaves it to the terminal, and so does pywrc then; the bars around the chat are
+        painted with the colors of the bars of WeeChat, in set_bars.
+        """
+        foreground, background = colors.OPTIONS["chat"]
+        chat = self.query_one("#chat", Chat)
+        chat.styles.color = colors.painted(foreground)
+        chat.styles.background = colors.painted(background)
 
     def draw_title(self) -> None:
         self.query_one("#title", Static).update(render.title(self.state.current))

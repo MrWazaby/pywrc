@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
+from rich.color import Color
 from textual.events import Paste
 from textual.geometry import Offset
 from textual.selection import Selection
@@ -24,8 +26,8 @@ async def nothing() -> None:
     """What the relay worker does in the tests: there is no relay to talk to."""
 
 
-def pywrc() -> Pywrc:
-    app = Pywrc(Config())
+def pywrc(**settings: Any) -> Pywrc:
+    app = Pywrc(Config(**settings))
     app.relay = nothing  # type: ignore[method-assign]
     return app
 
@@ -145,6 +147,7 @@ async def test_the_colors_of_the_remote_weechat_are_taken_as_they_come():
                         [
                             {"full_name": "weechat.color.chat_nick", "value": "red"},
                             {"full_name": "weechat.color.chat_host", "value": "green"},
+                            {"full_name": "weechat.color.chat_bg", "value": "235"},
                         ],
                     )
                 ],
@@ -155,6 +158,29 @@ async def test_the_colors_of_the_remote_weechat_are_taken_as_they_come():
         assert colors.OPTIONS["chat_host"] == ("green", None)
         assert colors.OPTIONS["chat_nick"] == ("*lightblue", None)
         assert app.query_one("#status").styles.background.hex == "#5F005F"  # the 53 of WeeChat
+        assert app.query_one("#chat").styles.background == colors.painted("235")
+
+
+async def test_the_chat_is_painted_with_the_colors_of_the_theme():
+    """The chat area is painted with "chat_bg", and the text on it with "chat"."""
+    app = pywrc(colors={"chat": "189", "chat_bg": "236"})
+    async with app.run_test(size=(40, 12)) as pilot:
+        app.local.lines.append(Line(message="hello there"))  # no date: no time, no prefix
+        app.draw_chat()
+        await pilot.pause()
+        segment = next(iter(app.query_one("#chat").render_line(0)))
+        assert segment.style.color == Color.parse("#d7d7ff")  # the 189 of the theme
+        assert segment.style.bgcolor == Color.parse("#303030")  # on its 236
+
+
+async def test_without_a_theme_the_chat_is_left_to_the_terminal():
+    app = pywrc()
+    async with app.run_test(size=(40, 12)) as pilot:
+        app.local.lines.append(Line(message="hello there"))
+        app.draw_chat()
+        await pilot.pause()
+        segment = next(iter(app.query_one("#chat").render_line(0)))
+        assert segment.style.color == segment.style.bgcolor == Color.parse("default")
 
 
 async def test_a_lost_connection_leaves_the_buffer_to_come_back_to():

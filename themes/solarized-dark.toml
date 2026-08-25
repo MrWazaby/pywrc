@@ -2,8 +2,9 @@
 #
 # Copy this "[colors]" section into ~/.config/pywrc/pywrc.toml, where it wins over the
 # colors of the WeeChat pywrc connects to. Colors are palette numbers, as they are in
-# WeeChat: the comments name the color of the theme each one stands for. pywrc paints no
-# background of its own, so the terminal is the one to be on base03 #002b36.
+# WeeChat: the comments name the color of the theme each one stands for. "chat_bg"
+# paints the chat on base03 #002b36; the terminal is the one to be on it too, for the
+# buflist and the bars around the chat.
 #
 # The palette numbers are the ones Solarized publishes for a 256 color terminal.
 
@@ -15,6 +16,7 @@ chat_prefix_suffix = "235"                  # base02 #073642
 
 # the chat
 chat = "244"                                # base0 #839496
+chat_bg = "234"                             # base03 #002b36
 chat_time = "240"                           # base01 #586e75
 chat_time_delimiters = "240"                # base01 #586e75
 chat_buffer = "245"                         # base1 #93a1a1

@@ -101,7 +101,7 @@ relay says:
 ```toml
 [colors]
 chat_nick = "lightblue"   # any "weechat.color.*" option, with or without its prefix
-chat_highlight_bg = "52"  # backgrounds are options of their own, as in WeeChat
+chat_bg = "236"           # backgrounds are options of their own, as in WeeChat
 status_number = "*yellow" # "*" is bold, "_" underlined, "/" italic, like in WeeChat
 ```
 
@@ -132,11 +132,13 @@ closest to a color of the theme, and the comment beside it says which one it sta
 a color that does not please is changed by hand. The 16 basic colors are never used, since
 a terminal paints those as it likes.
 
-pywrc paints no background of its own, so the terminal is the one to be on the background of
-the theme; the title and status bars keep the colors of the bars of the remote WeeChat, which
-`/set weechat.bar.title.color_bg` and `/set weechat.bar.status.color_bg` change. The buflist
-is left out of the theme too: like the buflist of WeeChat it is painted with the basic colors
-of the terminal.
+The chat is painted on the background of the theme, `chat_bg`, the way WeeChat paints its
+own chat with `weechat.color.chat_bg`; a theme that names none leaves it to the terminal. The
+terminal is still the one to be on that background, since what is around the chat is left to
+it: the title and status bars keep the colors of the bars of the remote WeeChat, which
+`/set weechat.bar.title.color_bg` and `/set weechat.bar.status.color_bg` change, and the
+buflist is left out of the theme, painted with the basic colors of the terminal like the
+buflist of WeeChat.
 
 ## Keys
 
