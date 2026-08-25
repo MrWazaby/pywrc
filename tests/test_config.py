@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from pywrc import config
+from pywrc import colors, config
 
 
 def write(tmp_path, text: str):
@@ -31,3 +33,16 @@ def test_what_is_no_setting_and_no_color_is_reported(tmp_path):
     path = write(tmp_path, '[colors]\nchat_nicks = "red"\n')
     with pytest.raises(SystemExit, match="unknown color"):
         config.from_file(path)
+
+
+def test_the_themes_are_readable_and_complete():
+    """Every theme of "themes/" is a "[colors]" section giving every color a value."""
+    themes = sorted((Path(__file__).parent.parent / "themes").glob("*.toml"))
+    assert themes, "no theme to check"
+    for path in themes:
+        settings = config.from_file(path)  # exits on a name that is no color
+        assert set(settings) == {"colors"}, f"{path.name} holds more than colors"
+        theme: dict[str, str] = settings["colors"]  # type: ignore[assignment]
+        assert not set(colors.DEFAULTS) - set(theme), f"{path.name} misses colors"
+        unresolved = [name for name, value in theme.items() if colors.color(value) is None]
+        assert not unresolved, f"{path.name}: {', '.join(unresolved)}"
