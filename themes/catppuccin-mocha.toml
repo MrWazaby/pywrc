@@ -1,0 +1,70 @@
+# Catppuccin Mocha for pywrc — https://github.com/catppuccin/catppuccin
+#
+# Copy this "[colors]" section into ~/.config/pywrc/pywrc.toml, where it wins over the
+# colors of the WeeChat pywrc connects to. Colors are palette numbers, as they are in
+# WeeChat: the comments name the color of the theme each one stands for. pywrc paints no
+# background of its own, so the terminal is the one to be on base #1e1e2e.
+
+[colors]
+# the frame: separators and delimiters
+separator = "238"                           # surface1 #45475a
+chat_delimiters = "103"                     # overlay1 #7f849c
+chat_prefix_suffix = "238"                  # surface1 #45475a
+
+# the chat
+chat = "189"                                # text #cdd6f4
+chat_time = "146"                           # subtext0 #a6adc8
+chat_time_delimiters = "103"                # overlay1 #7f849c
+chat_buffer = "224"                         # rosewater #f5e0dc
+chat_server = "216"                         # peach #fab387
+chat_channel = "111"                        # blue #89b4fa
+chat_host = "116"                           # teal #94e2d5
+chat_value = "116"                          # sky #89dceb
+chat_value_null = "117"                     # sapphire #74c7ec
+chat_tags = "217"                           # maroon #eba0ac
+chat_day_change = "116"                     # teal #94e2d5
+chat_read_marker = "183"                    # mauve #cba6f7
+chat_text_found = "223"                     # yellow #f9e2af
+chat_prefix_buffer = "224"                  # flamingo #f2cdcd
+chat_inactive_window = "146"                # subtext0 #a6adc8
+chat_inactive_buffer = "103"                # overlay1 #7f849c
+chat_prefix_buffer_inactive_buffer = "103"  # overlay1 #7f849c
+
+# the prefixes of the lines
+chat_prefix_error = "223"                   # yellow #f9e2af
+chat_prefix_network = "183"                 # mauve #cba6f7
+chat_prefix_action = "224"                  # rosewater #f5e0dc
+chat_prefix_join = "150"                    # green #a6e3a1
+chat_prefix_quit = "211"                    # red #f38ba8
+chat_prefix_more = "225"                    # pink #f5c2e7
+
+# the nicks and the nicklist
+chat_nick = "116"                           # sky #89dceb
+chat_nick_self = "224"                      # rosewater #f5e0dc
+chat_nick_other = "116"                     # teal #94e2d5
+chat_nick_prefix = "150"                    # green #a6e3a1
+chat_nick_suffix = "150"                    # green #a6e3a1
+chat_nick_offline = "103"                   # overlay1 #7f849c
+chat_nick_offline_highlight = "189"         # text #cdd6f4
+nicklist_group = "150"                      # green #a6e3a1
+
+# what is highlighted or searched for
+chat_highlight = "234"                      # base #1e1e2e
+chat_highlight_bg = "211"                   # red #f38ba8
+emphasized = "223"                          # yellow #f9e2af
+emphasized_bg = "236"                       # surface0 #313244
+
+# the status bar
+status_number = "223"                       # yellow #f9e2af
+status_name = "224"                         # rosewater #f5e0dc
+status_data_msg = "223"                     # yellow #f9e2af
+status_data_private = "150"                 # green #a6e3a1
+status_data_highlight = "225"               # pink #f5c2e7
+status_data_other = "189"                   # text #cdd6f4
+status_count_msg = "216"                    # peach #fab387
+status_count_private = "150"                # green #a6e3a1
+status_count_highlight = "183"              # mauve #cba6f7
+status_count_other = "189"                  # text #cdd6f4
+status_more = "223"                         # yellow #f9e2af
+chat_status_enabled = "150"                 # green #a6e3a1
+chat_status_disabled = "217"                # maroon #eba0ac

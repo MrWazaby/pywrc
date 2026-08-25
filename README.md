@@ -105,6 +105,39 @@ chat_highlight_bg = "52"  # backgrounds are options of their own, as in WeeChat
 status_number = "*yellow" # "*" is bold, "_" underlined, "/" italic, like in WeeChat
 ```
 
+### Themes
+
+A whole `[colors]` section is a theme, and `themes/` holds a few of them, taken from the
+palettes the themes publish:
+
+| Theme | Files |
+| ----- | ----- |
+| [Catppuccin](https://github.com/catppuccin/catppuccin) | [Latte](themes/catppuccin-latte.toml) (light), [Frappé](themes/catppuccin-frappe.toml), [Macchiato](themes/catppuccin-macchiato.toml), [Mocha](themes/catppuccin-mocha.toml) |
+| [Dracula](https://draculatheme.com/) | [dracula.toml](themes/dracula.toml) |
+| [Gruvbox](https://github.com/morhetz/gruvbox) | [gruvbox-dark.toml](themes/gruvbox-dark.toml) |
+| [Nord](https://www.nordtheme.com/) | [nord.toml](themes/nord.toml) |
+| [Solarized](https://ethanschoonover.com/solarized/) | [solarized-dark.toml](themes/solarized-dark.toml) |
+| [Tokyo Night](https://github.com/folke/tokyonight.nvim) | [tokyo-night.toml](themes/tokyo-night.toml) |
+
+Each file is the `[colors]` section on its own, so it is copied into
+`~/.config/pywrc/pywrc.toml`, or appended to a file that has no colors of its own yet:
+
+```console
+curl -fsSL https://raw.githubusercontent.com/MrWazaby/pywrc/main/themes/catppuccin-frappe.toml \
+  >> ~/.config/pywrc/pywrc.toml
+```
+
+Colors are palette numbers, as they are in WeeChat: each one is the color of the terminal
+closest to a color of the theme, and the comment beside it says which one it stands for, so
+a color that does not please is changed by hand. The 16 basic colors are never used, since
+a terminal paints those as it likes.
+
+pywrc paints no background of its own, so the terminal is the one to be on the background of
+the theme; the title and status bars keep the colors of the bars of the remote WeeChat, which
+`/set weechat.bar.title.color_bg` and `/set weechat.bar.status.color_bg` change. The buflist
+is left out of the theme too: like the buflist of WeeChat it is painted with the basic colors
+of the terminal.
+
 ## Keys
 
 The keys are the WeeChat ones:

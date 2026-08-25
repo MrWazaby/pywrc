@@ -1,0 +1,70 @@
+# Tokyo Night for pywrc — https://github.com/folke/tokyonight.nvim
+#
+# Copy this "[colors]" section into ~/.config/pywrc/pywrc.toml, where it wins over the
+# colors of the WeeChat pywrc connects to. Colors are palette numbers, as they are in
+# WeeChat: the comments name the color of the theme each one stands for. pywrc paints no
+# background of its own, so the terminal is the one to be on bg #1a1b26.
+
+[colors]
+# the frame: separators and delimiters
+separator = "60"                           # terminal black #414868
+chat_delimiters = "60"                     # comment #565f89
+chat_prefix_suffix = "60"                  # terminal black #414868
+
+# the chat
+chat = "146"                               # fg dark #a9b1d6
+chat_time = "103"                          # dark5 #737aa2
+chat_time_delimiters = "60"                # comment #565f89
+chat_buffer = "189"                        # fg #c0caf5
+chat_server = "215"                        # orange #ff9e64
+chat_channel = "111"                       # blue #7aa2f7
+chat_host = "80"                           # green1 #73daca
+chat_value = "117"                         # cyan #7dcfff
+chat_value_null = "25"                     # blue0 #3d59a1
+chat_tags = "203"                          # red1 #db4b4b
+chat_day_change = "80"                     # green1 #73daca
+chat_read_marker = "140"                   # purple #9d7cd8
+chat_text_found = "179"                    # yellow #e0af68
+chat_prefix_buffer = "215"                 # orange #ff9e64
+chat_inactive_window = "103"               # dark5 #737aa2
+chat_inactive_buffer = "60"                # comment #565f89
+chat_prefix_buffer_inactive_buffer = "60"  # comment #565f89
+
+# the prefixes of the lines
+chat_prefix_error = "179"                  # yellow #e0af68
+chat_prefix_network = "140"                # purple #9d7cd8
+chat_prefix_action = "189"                 # fg #c0caf5
+chat_prefix_join = "149"                   # green #9ece6a
+chat_prefix_quit = "211"                   # red #f7768e
+chat_prefix_more = "140"                   # magenta #bb9af7
+
+# the nicks and the nicklist
+chat_nick = "117"                          # cyan #7dcfff
+chat_nick_self = "189"                     # fg #c0caf5
+chat_nick_other = "80"                     # green1 #73daca
+chat_nick_prefix = "36"                    # teal #1abc9c
+chat_nick_suffix = "36"                    # teal #1abc9c
+chat_nick_offline = "60"                   # comment #565f89
+chat_nick_offline_highlight = "146"        # fg dark #a9b1d6
+nicklist_group = "36"                      # teal #1abc9c
+
+# what is highlighted or searched for
+chat_highlight = "234"                     # bg #1a1b26
+chat_highlight_bg = "211"                  # red #f7768e
+emphasized = "179"                         # yellow #e0af68
+emphasized_bg = "236"                      # bg highlight #292e42
+
+# the status bar
+status_number = "179"                      # yellow #e0af68
+status_name = "189"                        # fg #c0caf5
+status_data_msg = "179"                    # yellow #e0af68
+status_data_private = "149"                # green #9ece6a
+status_data_highlight = "140"              # magenta #bb9af7
+status_data_other = "146"                  # fg dark #a9b1d6
+status_count_msg = "215"                   # orange #ff9e64
+status_count_private = "36"                # teal #1abc9c
+status_count_highlight = "140"             # purple #9d7cd8
+status_count_other = "146"                 # fg dark #a9b1d6
+status_more = "179"                        # yellow #e0af68
+chat_status_enabled = "36"                 # teal #1abc9c
+chat_status_disabled = "203"               # red1 #db4b4b

@@ -1,0 +1,70 @@
+# Nord for pywrc — https://www.nordtheme.com/
+#
+# Copy this "[colors]" section into ~/.config/pywrc/pywrc.toml, where it wins over the
+# colors of the WeeChat pywrc connects to. Colors are palette numbers, as they are in
+# WeeChat: the comments name the color of the theme each one stands for. pywrc paints no
+# background of its own, so the terminal is the one to be on nord0 #2e3440.
+
+[colors]
+# the frame: separators and delimiters
+separator = "239"                           # nord2 #434c5e
+chat_delimiters = "240"                     # nord3 #4c566a
+chat_prefix_suffix = "239"                  # nord2 #434c5e
+
+# the chat
+chat = "253"                                # nord4 #d8dee9
+chat_time = "110"                           # nord9 #81a1c1
+chat_time_delimiters = "240"                # nord3 #4c566a
+chat_buffer = "255"                         # nord6 #eceff4
+chat_server = "173"                         # nord12 #d08770
+chat_channel = "67"                         # nord10 #5e81ac
+chat_host = "109"                           # nord7 #8fbcbb
+chat_value = "109"                          # nord8 #88c0d0
+chat_value_null = "67"                      # nord10 #5e81ac
+chat_tags = "131"                           # nord11 #bf616a
+chat_day_change = "109"                     # nord7 #8fbcbb
+chat_read_marker = "139"                    # nord15 #b48ead
+chat_text_found = "222"                     # nord13 #ebcb8b
+chat_prefix_buffer = "173"                  # nord12 #d08770
+chat_inactive_window = "110"                # nord9 #81a1c1
+chat_inactive_buffer = "240"                # nord3 #4c566a
+chat_prefix_buffer_inactive_buffer = "240"  # nord3 #4c566a
+
+# the prefixes of the lines
+chat_prefix_error = "222"                   # nord13 #ebcb8b
+chat_prefix_network = "139"                 # nord15 #b48ead
+chat_prefix_action = "255"                  # nord6 #eceff4
+chat_prefix_join = "108"                    # nord14 #a3be8c
+chat_prefix_quit = "131"                    # nord11 #bf616a
+chat_prefix_more = "139"                    # nord15 #b48ead
+
+# the nicks and the nicklist
+chat_nick = "109"                           # nord8 #88c0d0
+chat_nick_self = "255"                      # nord6 #eceff4
+chat_nick_other = "109"                     # nord7 #8fbcbb
+chat_nick_prefix = "108"                    # nord14 #a3be8c
+chat_nick_suffix = "108"                    # nord14 #a3be8c
+chat_nick_offline = "240"                   # nord3 #4c566a
+chat_nick_offline_highlight = "253"         # nord4 #d8dee9
+nicklist_group = "108"                      # nord14 #a3be8c
+
+# what is highlighted or searched for
+chat_highlight = "236"                      # nord0 #2e3440
+chat_highlight_bg = "131"                   # nord11 #bf616a
+emphasized = "222"                          # nord13 #ebcb8b
+emphasized_bg = "239"                       # nord2 #434c5e
+
+# the status bar
+status_number = "222"                       # nord13 #ebcb8b
+status_name = "255"                         # nord6 #eceff4
+status_data_msg = "222"                     # nord13 #ebcb8b
+status_data_private = "108"                 # nord14 #a3be8c
+status_data_highlight = "139"               # nord15 #b48ead
+status_data_other = "253"                   # nord4 #d8dee9
+status_count_msg = "173"                    # nord12 #d08770
+status_count_private = "108"                # nord14 #a3be8c
+status_count_highlight = "139"              # nord15 #b48ead
+status_count_other = "253"                  # nord4 #d8dee9
+status_more = "222"                         # nord13 #ebcb8b
+chat_status_enabled = "108"                 # nord14 #a3be8c
+chat_status_disabled = "131"                # nord11 #bf616a

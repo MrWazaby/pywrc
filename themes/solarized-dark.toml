@@ -1,0 +1,72 @@
+# Solarized dark for pywrc — https://ethanschoonover.com/solarized/
+#
+# Copy this "[colors]" section into ~/.config/pywrc/pywrc.toml, where it wins over the
+# colors of the WeeChat pywrc connects to. Colors are palette numbers, as they are in
+# WeeChat: the comments name the color of the theme each one stands for. pywrc paints no
+# background of its own, so the terminal is the one to be on base03 #002b36.
+#
+# The palette numbers are the ones Solarized publishes for a 256 color terminal.
+
+[colors]
+# the frame: separators and delimiters
+separator = "235"                           # base02 #073642
+chat_delimiters = "240"                     # base01 #586e75
+chat_prefix_suffix = "235"                  # base02 #073642
+
+# the chat
+chat = "244"                                # base0 #839496
+chat_time = "240"                           # base01 #586e75
+chat_time_delimiters = "240"                # base01 #586e75
+chat_buffer = "245"                         # base1 #93a1a1
+chat_server = "166"                         # orange #cb4b16
+chat_channel = "33"                         # blue #268bd2
+chat_host = "37"                            # cyan #2aa198
+chat_value = "37"                           # cyan #2aa198
+chat_value_null = "61"                      # violet #6c71c4
+chat_tags = "160"                           # red #dc322f
+chat_day_change = "37"                      # cyan #2aa198
+chat_read_marker = "61"                     # violet #6c71c4
+chat_text_found = "136"                     # yellow #b58900
+chat_prefix_buffer = "166"                  # orange #cb4b16
+chat_inactive_window = "240"                # base01 #586e75
+chat_inactive_buffer = "240"                # base01 #586e75
+chat_prefix_buffer_inactive_buffer = "240"  # base01 #586e75
+
+# the prefixes of the lines
+chat_prefix_error = "136"                   # yellow #b58900
+chat_prefix_network = "61"                  # violet #6c71c4
+chat_prefix_action = "245"                  # base1 #93a1a1
+chat_prefix_join = "64"                     # green #859900
+chat_prefix_quit = "160"                    # red #dc322f
+chat_prefix_more = "125"                    # magenta #d33682
+
+# the nicks and the nicklist
+chat_nick = "37"                            # cyan #2aa198
+chat_nick_self = "245"                      # base1 #93a1a1
+chat_nick_other = "37"                      # cyan #2aa198
+chat_nick_prefix = "64"                     # green #859900
+chat_nick_suffix = "64"                     # green #859900
+chat_nick_offline = "240"                   # base01 #586e75
+chat_nick_offline_highlight = "244"         # base0 #839496
+nicklist_group = "64"                       # green #859900
+
+# what is highlighted or searched for
+chat_highlight = "234"                      # base03 #002b36
+chat_highlight_bg = "160"                   # red #dc322f
+emphasized = "136"                          # yellow #b58900
+emphasized_bg = "235"                       # base02 #073642
+
+# the status bar
+status_number = "136"                       # yellow #b58900
+status_name = "245"                         # base1 #93a1a1
+status_data_msg = "136"                     # yellow #b58900
+status_data_private = "64"                  # green #859900
+status_data_highlight = "125"               # magenta #d33682
+status_data_other = "244"                   # base0 #839496
+status_count_msg = "166"                    # orange #cb4b16
+status_count_private = "64"                 # green #859900
+status_count_highlight = "61"               # violet #6c71c4
+status_count_other = "244"                  # base0 #839496
+status_more = "136"                         # yellow #b58900
+chat_status_enabled = "64"                  # green #859900
+chat_status_disabled = "160"                # red #dc322f
