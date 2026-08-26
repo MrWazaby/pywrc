@@ -163,14 +163,14 @@ async def test_the_colors_of_the_remote_weechat_are_taken_as_they_come():
 
 async def test_the_chat_is_painted_with_the_colors_of_the_theme():
     """The chat area is painted with "chat_bg", and the text on it with "chat"."""
-    app = pywrc(colors={"chat": "189", "chat_bg": "236"})
+    app = pywrc(colors={"chat": "189", "chat_bg": "#303446"})
     async with app.run_test(size=(40, 12)) as pilot:
         app.local.lines.append(Line(message="hello there"))  # no date: no time, no prefix
         app.draw_chat()
         await pilot.pause()
         segment = next(iter(app.query_one("#chat").render_line(0)))
         assert segment.style.color == Color.parse("#d7d7ff")  # the 189 of the theme
-        assert segment.style.bgcolor == Color.parse("#303030")  # on its 236
+        assert segment.style.bgcolor == Color.parse("#303446")  # on the base it is really on
 
 
 async def test_without_a_theme_the_chat_is_left_to_the_terminal():

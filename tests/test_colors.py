@@ -85,8 +85,17 @@ def test_a_color_carries_the_attributes_of_weechat():
     assert colors.style("chat_nick") == Style(color="bright_yellow", bold=True, underline=True)
 
 
+def test_a_color_is_written_as_it_is_when_no_palette_number_stands_for_it():
+    """A theme names the color it is really on with "#rrggbb", which WeeChat has no room for."""
+    colors.theme({"chat_bg": "#303446", "chat_nick": "*#8caaee"})
+    assert colors.style("chat") == Style(bgcolor="#303446")
+    assert colors.style("chat_nick") == Style(color="#8caaee", bold=True)
+    assert colors.color("#30344") is None  # too short to be one
+
+
 def test_the_colors_textual_paints_itself_are_given_to_it_as_they_are():
     """A palette number is the color it stands for, a basic color the one of the terminal."""
     assert colors.painted("234").hex == "#1C1C1C"
     assert colors.painted("red").ansi == 1  # the red of the terminal, whatever it paints it
     assert colors.painted("default") == colors.TERMINAL
+    assert colors.painted("#303446").hex == "#303446"  # the color of a theme, untouched

@@ -101,9 +101,12 @@ relay says:
 ```toml
 [colors]
 chat_nick = "lightblue"   # any "weechat.color.*" option, with or without its prefix
-chat_bg = "236"           # backgrounds are options of their own, as in WeeChat
+chat_bg = "#303446"       # backgrounds are options of their own, as in WeeChat
 status_number = "*yellow" # "*" is bold, "_" underlined, "/" italic, like in WeeChat
 ```
+
+A color is a name or a palette number, as in WeeChat, or `#rrggbb` for a color no number of
+the palette stands for.
 
 ### Themes
 
@@ -132,11 +135,18 @@ closest to a color of the theme, and the comment beside it says which one it sta
 a color that does not please is changed by hand. The 16 basic colors are never used, since
 a terminal paints those as it likes.
 
-The chat is painted on the background of the theme, `chat_bg`, the way WeeChat paints its
-own chat with `weechat.color.chat_bg`; a theme that names none leaves it to the terminal. The
-terminal is still the one to be on that background, since what is around the chat is left to
-it: the title and status bars keep the colors of the bars of the remote WeeChat, which
-`/set weechat.bar.title.color_bg` and `/set weechat.bar.status.color_bg` change, and the
+The background of the chat is the one color written as it is, `chat_bg = "#303446"`: the
+colors of the text have the palette of the terminal to be close to, while the background of
+the chat meets the background of the terminal, which no palette number is close enough to --
+the 256 colors hold no dark color as colored as the background of a theme. Any color is
+written that way, `#rrggbb`, where a palette number does not please; a terminal without true
+colors paints the closest of the 256 it has.
+
+The chat is painted with that background the way WeeChat paints its own with
+`weechat.color.chat_bg`, and a theme that names none leaves the chat to the terminal. The
+terminal is still the one to be on the background of the theme, since what is around the chat
+is left to it: the title and status bars keep the colors of the bars of the remote WeeChat,
+which `/set weechat.bar.title.color_bg` and `/set weechat.bar.status.color_bg` change, and the
 buflist is left out of the theme, painted with the basic colors of the terminal like the
 buflist of WeeChat.
 

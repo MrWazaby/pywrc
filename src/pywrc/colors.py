@@ -7,6 +7,7 @@ attribute and 0x1C resets everything.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping
 
 from rich.color import Color, ColorType
@@ -208,14 +209,20 @@ _ATTRIBUTES = {
 }
 
 
+_HEXADECIMAL = re.compile(r"#[0-9a-fA-F]{6}\Z")
+"""A color written as it is, "#rrggbb", which WeeChat has no use for but a theme has."""
+
+
 def color(spec: str | None) -> str | None:
-    """Resolve a WeeChat color (name, number or option name) to a Rich color."""
+    """Resolve a WeeChat color (name, number, "#rrggbb" or option name) to a Rich color."""
     if not spec:
         return None
     if spec.startswith("weechat.color."):
         option = OPTIONS.get(spec[len("weechat.color.") :])
         return color(option[0]) if option else None
     spec = spec.lstrip("".join(_ATTRIBUTES))
+    if _HEXADECIMAL.match(spec):
+        return spec.lower()
     if spec.isdigit():
         number = int(spec)
         return None if number < 0 else f"color({number})"
