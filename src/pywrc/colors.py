@@ -7,11 +7,13 @@ attribute and 0x1C resets everything.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping
 
-from rich.color import Color
+from rich.color import Color, ColorType
 from rich.style import Style
 from rich.text import Text
+from textual.color import Color as TerminalColor
 
 COLOR = "\x19"
 SET_ATTR = "\x1a"
@@ -207,14 +209,20 @@ _ATTRIBUTES = {
 }
 
 
+_HEXADECIMAL = re.compile(r"#[0-9a-fA-F]{6}\Z")
+"""A color written as it is, "#rrggbb", which WeeChat has no use for but a theme has."""
+
+
 def color(spec: str | None) -> str | None:
-    """Resolve a WeeChat color (name, number or option name) to a Rich color."""
+    """Resolve a WeeChat color (name, number, "#rrggbb" or option name) to a Rich color."""
     if not spec:
         return None
     if spec.startswith("weechat.color."):
         option = OPTIONS.get(spec[len("weechat.color.") :])
         return color(option[0]) if option else None
     spec = spec.lstrip("".join(_ATTRIBUTES))
+    if _HEXADECIMAL.match(spec):
+        return spec.lower()
     if spec.isdigit():
         number = int(spec)
         return None if number < 0 else f"color({number})"
@@ -240,10 +248,23 @@ def style(option: str, **extra: bool) -> Style:
     )
 
 
-def hexadecimal(spec: str | None) -> str | None:
-    """A WeeChat color as "#rrggbb", for the parts of the screen Textual paints itself."""
+TERMINAL = TerminalColor.parse("ansi_default")
+"""The color of the terminal itself, the one WeeChat calls "default"."""
+
+
+def painted(spec: str | None) -> TerminalColor:
+    """A WeeChat color for the parts of the screen Textual paints itself.
+
+    A color WeeChat leaves to the terminal is left to it here too, and so are the 16
+    basic colors, which a terminal paints as it likes; a palette number is the color
+    it stands for, the one the chat is painted with.
+    """
     name = color(spec)
-    return Color.parse(name).get_truecolor().hex if name else None
+    if name is None:
+        return TERMINAL
+    rich = Color.parse(name)
+    basic = rich.type is ColorType.STANDARD  # the 16 colors of the terminal itself
+    return TerminalColor(*rich.get_truecolor(), ansi=rich.number if basic else None)
 
 
 def code(option: str) -> str:

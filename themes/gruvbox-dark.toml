@@ -2,8 +2,10 @@
 #
 # Copy this "[colors]" section into ~/.config/pywrc/pywrc.toml, where it wins over the
 # colors of the WeeChat pywrc connects to. Colors are palette numbers, as they are in
-# WeeChat: the comments name the color of the theme each one stands for. pywrc paints no
-# background of its own, so the terminal is the one to be on dark0 #282828.
+# WeeChat: the comments name the color of the theme each one stands for. The background
+# of the chat, "chat_bg", is dark0 #282828 itself and not the closest of the 256 colors,
+# since it meets the background of the terminal: the terminal is the one to be on that
+# dark0 too, for the buflist and the bars around the chat.
 #
 # The palette numbers are the ones gruvbox itself uses in a 256 color terminal.
 
@@ -15,6 +17,7 @@ chat_prefix_suffix = "239"                  # dark2 #504945
 
 # the chat
 chat = "223"                                # light1 #ebdbb2
+chat_bg = "#282828"                         # dark0, as it is
 chat_time = "245"                           # gray #928374
 chat_time_delimiters = "243"                # dark4 #7c6f64
 chat_buffer = "229"                         # light0 #fbf1c7

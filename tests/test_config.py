@@ -44,5 +44,6 @@ def test_the_themes_are_readable_and_complete():
         assert set(settings) == {"colors"}, f"{path.name} holds more than colors"
         theme: dict[str, str] = settings["colors"]  # type: ignore[assignment]
         assert not set(colors.DEFAULTS) - set(theme), f"{path.name} misses colors"
+        assert "chat_bg" in theme, f"{path.name} leaves the chat on the terminal"
         unresolved = [name for name, value in theme.items() if colors.color(value) is None]
         assert not unresolved, f"{path.name}: {', '.join(unresolved)}"
