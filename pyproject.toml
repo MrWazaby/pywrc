@@ -1,6 +1,6 @@
 [project]
 name = "pywrc"
-version = "0.3.0"
+version = "0.3.1"
 description = "A WeeChat relay client for the terminal, in the spirit of vanilla WeeChat"
 readme = "README.md"
 license = { file = "LICENSE" }

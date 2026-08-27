@@ -1,3 +1,10 @@
+## v0.3.1 (2026-08-27)
+
+### Fix
+
+- paint the chat on the color of the theme itself
+- paint the chat with the background of the theme
+
 ## v0.3.0 (2026-08-24)
 
 ### Feat
