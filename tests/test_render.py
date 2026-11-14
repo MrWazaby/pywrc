@@ -6,7 +6,7 @@ import time
 
 from rich.text import Text
 
-from pywrc import render
+from pywrc import colors, render
 from pywrc.state import HIGHLIGHT, MESSAGE, Buffer, Line, State
 
 DATE = 1321993456
@@ -14,6 +14,13 @@ DATE = 1321993456
 
 def when() -> str:
     return time.strftime(render.TIME_FORMAT, time.localtime(DATE))
+
+
+def day_at(hour: int, offset: int = 0) -> int:
+    """A date at the given hour, some days after DATE (mktime rolls the months over)."""
+    stamp = time.localtime(DATE)
+    fields = (stamp.tm_year, stamp.tm_mon, stamp.tm_mday + offset, hour, 0, 0, 0, 0, -1)
+    return int(time.mktime(fields))
 
 
 def test_line_is_aligned_on_the_prefix():
@@ -81,6 +88,56 @@ def test_prefix_column_is_the_widest_prefix():
     lines = [Line(date=DATE, prefix="a"), Line(date=DATE, prefix="\x19F05longer")]
     assert render.prefix_width(lines) == len("longer")
     assert render.prefix_width([Line(date=DATE, prefix="x" * 40)]) == render.PREFIX_ALIGN_MAX
+
+
+def test_a_line_marks_each_change_of_day():
+    buffer = Buffer("0x1")
+    buffer.lines.extend(
+        [
+            Line(date=day_at(23), prefix="nick", message="late"),
+            Line(date=day_at(1, 1), prefix="nick", message="early"),
+            Line(date=day_at(2, 1), prefix="nick", message="later"),
+        ]
+    )
+    texts = render.chat(buffer, width=80)
+    new_day = time.strftime(render.DAY_CHANGE_DATE_FORMAT, time.localtime(day_at(1, 1)))
+    assert len(texts) == 4  # one separator between the two days, none within a day
+    assert texts[1].plain == f"Day changed to {new_day}"
+    assert texts[0].plain.endswith("late")
+    assert texts[2].plain.endswith("early")
+    assert texts[3].plain.endswith("later")
+
+
+def test_no_day_change_line_before_the_first_line_or_on_the_same_day():
+    buffer = Buffer("0x1")
+    buffer.lines.extend(
+        [
+            Line(date=day_at(1), prefix="nick", message="first"),
+            Line(date=day_at(2), prefix="nick", message="second"),
+            Line(message="no date"),
+        ]
+    )
+    texts = render.chat(buffer, width=80)
+    assert len(texts) == 3
+    assert texts[-1].plain == "no date"
+
+
+def test_the_day_change_line_is_painted_with_chat_day_change():
+    (text,) = render.line(render.day_change(DATE), width=80, align=4)
+    day = time.strftime(render.DAY_CHANGE_DATE_FORMAT, time.localtime(DATE))
+    assert text.plain == f"Day changed to {day}"
+    assert [str(span.style) for span in text.spans] == [str(colors.style("chat_day_change"))]
+
+
+def test_a_day_change_is_marked_against_the_line_already_displayed():
+    lines = [Line(date=day_at(1, 1), message="today")]
+    items = list(render.with_day_changes(lines, day_at(23)))
+    new_day = time.strftime(render.DAY_CHANGE_DATE_FORMAT, time.localtime(day_at(1, 1)))
+    assert [colors.plain(item.message) for item in items] == [
+        f"Day changed to {new_day}",
+        "today",
+    ]
+    assert list(render.with_day_changes(lines, day_at(2, 1))) == lines  # same day: nothing added
 
 
 def buffers() -> State:

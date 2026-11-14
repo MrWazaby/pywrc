@@ -25,6 +25,12 @@ TIME_FORMAT = "%H:%M:%S"
 ITEM_TIME_FORMAT = "%H:%M"
 """weechat.look.item_time_format"""
 
+DAY_CHANGE_MESSAGE = "Day changed to {}"
+"""weechat.look.day_change_message_1date"""
+
+DAY_CHANGE_DATE_FORMAT = "%Y-%m-%d"
+"""The format of ${date} in the day change message."""
+
 PREFIX_SUFFIX = "│"
 """weechat.look.prefix_suffix"""
 
@@ -136,10 +142,46 @@ def line(item: Line, width: int, align: int) -> list[Text]:
     return screen_lines
 
 
+def _day(date: int) -> tuple[int, int]:
+    """The day a date falls on, as (year, day of the year) in the local time zone."""
+    stamp = time.localtime(date)
+    return stamp.tm_year, stamp.tm_yday
+
+
+def day_change(date: int) -> Line:
+    """The line shown when the day changes, as WeeChat shows it.
+
+    It carries no date, so it is not aligned on the prefix column, and its color
+    is the one of "weechat.color.chat_day_change".
+    """
+    day = time.strftime(DAY_CHANGE_DATE_FORMAT, time.localtime(date))
+    return Line(message=colors.code("chat_day_change") + DAY_CHANGE_MESSAGE.format(day))
+
+
+def with_day_changes(lines: Iterable[Line], previous: int = 0) -> Iterable[Line]:
+    """The lines to display, with a day change line before each new day.
+
+    WeeChat displays the day change on the fly, without storing it as a line of
+    the buffer: the same here, the separator is built while rendering, never kept
+    in the state. "previous" is the date of the last line already displayed.
+    """
+    shown = previous
+    for item in lines:
+        if item.date:
+            if shown and _day(item.date) != _day(shown):
+                yield day_change(item.date)
+            shown = item.date
+        yield item
+
+
 def chat(buffer: Buffer, width: int) -> list[Text]:
     """Render all the lines of a buffer."""
     align = prefix_width(buffer.lines)
-    return [screen_line for item in buffer.lines for screen_line in line(item, width, align)]
+    return [
+        screen_line
+        for item in with_day_changes(buffer.lines)
+        for screen_line in line(item, width, align)
+    ]
 
 
 def title(buffer: Buffer | None) -> Text:

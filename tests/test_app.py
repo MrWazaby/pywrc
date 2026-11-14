@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
 from rich.color import Color
@@ -20,6 +21,13 @@ VALUE = "abcdefghij" * 8
 """Longer than the input line of a screen 40 columns wide."""
 
 DATE = 1321993456
+
+
+def day_at(hour: int, offset: int = 0) -> int:
+    """A date at the given hour, some days after DATE (mktime rolls the months over)."""
+    stamp = time.localtime(DATE)
+    fields = (stamp.tm_year, stamp.tm_mon, stamp.tm_mday + offset, hour, 0, 0, 0, 0, -1)
+    return int(time.mktime(fields))
 
 
 async def nothing() -> None:
@@ -199,3 +207,17 @@ async def test_the_first_connection_has_no_buffer_to_come_back_to():
     async with app.run_test():
         app.forget()
         assert app.previous == ""  # WeeChat is asked which buffer it displays instead
+
+
+async def test_the_day_change_line_is_added_with_the_new_lines():
+    app = pywrc()
+    async with app.run_test(size=(40, 12)) as pilot:
+        app.local.lines.append(Line(date=day_at(23), prefix="bob", message="yesterday"))
+        app.draw_chat()
+        app.local.lines.append(Line(date=day_at(1, 1), prefix="bob", message="today"))
+        app.append_lines(1)
+        await pilot.pause()
+        texts = [strip.text.rstrip() for strip in app.query_one("#chat").lines]
+        assert len(texts) == 3
+        assert "Day changed to" in texts[1]
+        assert texts[2].endswith("today")
