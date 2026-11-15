@@ -2,12 +2,12 @@ default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.17.0
+    rev: v4.19.3
     hooks:
       - id: commitizen  # checks that commit messages follow the conventional commits
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.2
+    rev: v0.17.5
     hooks:
       - id: ruff-check
         args: [--fix]
