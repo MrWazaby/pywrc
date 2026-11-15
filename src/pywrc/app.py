@@ -560,14 +560,17 @@ class Pywrc(App[None]):
         buffer = self.state.current
         if buffer is None:
             return
-        lines = list(buffer.lines)[-count:]
+        all_lines = list(buffer.lines)
+        lines = all_lines[-count:]
         align = render.prefix_width(buffer.lines)
         if any(colors.parse(item.prefix).cell_len > align for item in lines):
             self.draw_chat()  # the prefix column grew: every line moves
             return
+        # the day of the last dated line already on screen, to mark a day change
+        previous = next((item.date for item in reversed(all_lines[:-count]) if item.date), 0)
         chat = self.query_one("#chat", Chat)
         chat.auto_scroll = chat.is_vertical_scroll_end
-        for item in lines:
+        for item in render.with_day_changes(lines, previous):
             self.write(chat, render.line(item, self.chat_width, align))
 
     def write(self, chat: Chat, lines: list[Text]) -> None:
