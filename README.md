@@ -19,7 +19,7 @@ nicklist on the right, status bar with the hotlist, and the input line at the bo
 ```
 
 > [!NOTE]
-> This is a personal project, vibecoded with [Claude](https://claude.com/claude-code): I wrote
+> This is a personal vibecoded project: I wrote
 > it for my own use, and the code is written by an LLM from my prompts. Use it if it is useful
 > to you, but expect no support and no stability.
 
