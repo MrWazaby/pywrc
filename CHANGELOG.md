@@ -1,3 +1,9 @@
+## v0.4.0 (2026-11-17)
+
+### Feat
+
+- show a line in the chat when the day changes
+
 ## v0.3.1 (2026-08-27)
 
 ### Fix
